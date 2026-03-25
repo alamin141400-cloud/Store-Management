@@ -24,7 +24,7 @@ jobs:
         run: npx electron-builder
 
       - name: Upload EXE
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: arman-browser
           path: dist/*
