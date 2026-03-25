@@ -1,15 +1,14 @@
 {
   "name": "smart-store",
-  "version": "2.0.0",
-  "description": "Smart Store – Professional Kiosk Browser for Warehouse Management",
+  "version": "3.0.0",
+  "description": "Smart Store — Smart Store Warehouse Management System",
   "main": "src/main.js",
   "author": "Smart Store",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --publish=never",
-    "build:win": "electron-builder --win --publish=never",
-    "build:win32": "electron-builder --win --ia32 --publish=never"
+    "build:win": "electron-builder --win --x64",
+    "build:win32": "electron-builder --win --ia32"
   },
   "dependencies": {
     "electron-store": "^8.1.0"
@@ -19,18 +18,18 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.smartstore.browser",
+    "appId": "com.smartstore.wms",
     "productName": "Smart Store",
-    "copyright": "Copyright © 2026 Smart Store",
+    "copyright": "© 2026 Smart Store",
     "asar": true,
-    "directories": { "output": "dist" },
+    "directories": {
+      "output": "dist"
+    },
     "win": {
       "target": [
-        {
-          "target": "nsis",
-          "arch": ["x64"]
-        }
+        { "target": "nsis", "arch": ["x64", "ia32"] }
       ],
+      "icon": "assets/icon.ico",
       "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
@@ -45,6 +44,13 @@
         "provider": "generic",
         "url": "https://www.ahrtechdiv.com/downloads/"
       }
-    ]
+    ],
+    "extraMetadata": {
+      "electron": {
+        "nodeIntegration": false,
+        "contextIsolation": true,
+        "sandbox": true
+      }
+    }
   }
 }

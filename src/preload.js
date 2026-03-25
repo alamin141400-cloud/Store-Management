@@ -1,68 +1,92 @@
 /**
- * preload.js — Arman Store WMS  (v2.0)
- * Runs in renderer context with access to ipcRenderer.
- * Exposes a clean, typed API via contextBridge — no Node leaks.
+ * preload.js — Arman Store WMS v3.0
+ * Secure IPC bridge via contextBridge.
+ * Exposes window.WMS — no Node.js leaks into renderer.
  */
 'use strict';
 
 const { contextBridge, ipcRenderer } = require('electron');
 
-/** Helper: register a one-way listener and return an unsubscribe fn. */
-const on = (ch, cb) => {
-  const handler = (_, data) => cb(data);
-  ipcRenderer.on(ch, handler);
-  return () => ipcRenderer.removeListener(ch, handler);
-};
+const on  = (ch, cb) => { const h = (_, d) => cb(d); ipcRenderer.on(ch, h); return () => ipcRenderer.removeListener(ch, h); };
+const inv = (ch, ...a) => ipcRenderer.invoke(ch, ...a);
+const snd = (ch, d)    => ipcRenderer.send(ch, d);
 
 contextBridge.exposeInMainWorld('WMS', {
 
-  // ── Tab ───────────────────────────────────────────────────
-  openTab:   (url)  => ipcRenderer.send('tab:open',   url),
-  switchTab: (id)   => ipcRenderer.send('tab:switch', id),
-  closeTab:  (id)   => ipcRenderer.send('tab:close',  id),
+  // ── Tabs ──────────────────────────────────────────────────
+  openTab:      url  => snd('tab:open',    url),
+  switchTab:    id   => snd('tab:switch',  id),
+  closeTab:     id   => snd('tab:close',   id),
+  duplicateTab: id   => snd('tab:dup',     id),
+  pinTab:       id   => snd('tab:pin',     id),
+  muteTab:      id   => snd('tab:mute',    id),
 
-  // ── Navigation ───────────────────────────────────────────
-  back:    () => ipcRenderer.send('nav:back'),
-  forward: () => ipcRenderer.send('nav:forward'),
-  reload:  () => ipcRenderer.send('nav:reload'),
-  home:    () => ipcRenderer.send('nav:home'),
+  // ── Navigation ────────────────────────────────────────────
+  back:         ()   => snd('nav:back'),
+  forward:      ()   => snd('nav:forward'),
+  reload:       ()   => snd('nav:reload'),
+  hardReload:   ()   => snd('nav:hard-reload'),
+  stop:         ()   => snd('nav:stop'),
+  home:         ()   => snd('nav:home'),
+  goToURL:      url  => snd('nav:goto',    url),
 
-  // ── Print / PDF ───────────────────────────────────────────
-  print:     () => ipcRenderer.send('print'),
-  savePDF:   () => ipcRenderer.send('pdf'),
+  // ── Print / PDF / Screenshot ──────────────────────────────
+  print:        ()   => snd('print'),
+  savePDF:      ()   => snd('pdf'),
+  screenshot:   ()   => inv('screenshot'),
 
   // ── Downloads ─────────────────────────────────────────────
-  openDownloads: ()    => ipcRenderer.send('downloads'),
-  downloadURL:   (url) => ipcRenderer.send('dl:url', url),
+  openDownloads: ()  => snd('downloads'),
+  downloadURL:  url  => snd('dl:url',      url),
+  clearDownloads: () => snd('dl:clear'),
 
-  // ── Zoom ─────────────────────────────────────────────────
-  zoomIn:    ()    => ipcRenderer.send('zoom:in'),
-  zoomOut:   ()    => ipcRenderer.send('zoom:out'),
-  zoomReset: ()    => ipcRenderer.send('zoom:reset'),
-  zoomSet:   (pct) => ipcRenderer.send('zoom:set', pct),
+  // ── Bookmarks ─────────────────────────────────────────────
+  addBookmark:    d  => snd('bm:add',      d),
+  removeBookmark: id => snd('bm:remove',   id),
+  getBookmarks:   () => inv('bm:get'),
 
-  // ── Find in page ─────────────────────────────────────────
-  findStart: (q) => ipcRenderer.send('find:start', q),
-  findNext:  (q) => ipcRenderer.send('find:next',  q),
-  findPrev:  (q) => ipcRenderer.send('find:prev',  q),
-  findStop:  ()  => ipcRenderer.send('find:stop'),
+  // ── History ───────────────────────────────────────────────
+  getHistory:     () => inv('history:get'),
+  clearHistory:   () => snd('history:clear'),
 
-  // ── Inbound events (main → renderer) ─────────────────────
+  // ── Zoom ──────────────────────────────────────────────────
+  zoomIn:         ()  => snd('zoom:in'),
+  zoomOut:        ()  => snd('zoom:out'),
+  zoomReset:      ()  => snd('zoom:reset'),
+  zoomSet:        pct => snd('zoom:set',   pct),
+
+  // ── Find ──────────────────────────────────────────────────
+  findStart:      q  => snd('find:start',  q),
+  findNext:       q  => snd('find:next',   q),
+  findPrev:       q  => snd('find:prev',   q),
+  findStop:       ()  => snd('find:stop'),
+
+  // ── App ───────────────────────────────────────────────────
+  minimize:       ()  => snd('app:minimize'),
+  maximize:       ()  => snd('app:maximize'),
+  quit:           ()  => snd('app:quit'),
+  getVersion:     ()  => inv('app:version'),
+  openDevTools:   ()  => snd('app:devtools'),
+
+  // ── Inbound (main → renderer) ─────────────────────────────
   on: {
-    tabOpened:    cb => on('tab:opened',  cb),
-    tabClosed:    cb => on('tab:closed',  cb),
-    tabActive:    cb => on('tab:active',  cb),
-    tabUpdate:    cb => on('tab:update',  cb),
-    tabLoading:   cb => on('tab:loading', cb),
-    tabFavicon:   cb => on('tab:favicon', cb),
-    navState:     cb => on('nav:state',   cb),
-    navBlocked:   cb => on('nav-blocked', cb),
-    zoomChanged:  cb => on('zoom:changed',cb),
-    toast:        cb => on('toast',       cb),
-    findOpen:     cb => on('find:open',   cb),
-    dlStart:      cb => on('dl:start',    cb),
-    dlProgress:   cb => on('dl:progress', cb),
-    dlComplete:   cb => on('dl:complete', cb),
-    dlError:      cb => on('dl:error',    cb),
+    tabOpened:      cb => on('tab:opened',   cb),
+    tabClosed:      cb => on('tab:closed',   cb),
+    tabActive:      cb => on('tab:active',   cb),
+    tabUpdate:      cb => on('tab:update',   cb),
+    tabLoading:     cb => on('tab:loading',  cb),
+    tabFavicon:     cb => on('tab:favicon',  cb),
+    tabPinned:      cb => on('tab:pinned',   cb),
+    navState:       cb => on('nav:state',    cb),
+    navBlocked:     cb => on('nav-blocked',  cb),
+    urlChanged:     cb => on('url:changed',  cb),
+    zoomChanged:    cb => on('zoom:changed', cb),
+    toast:          cb => on('toast',        cb),
+    findOpen:       cb => on('find:open',    cb),
+    dlStart:        cb => on('dl:start',     cb),
+    dlProgress:     cb => on('dl:progress',  cb),
+    dlComplete:     cb => on('dl:complete',  cb),
+    dlError:        cb => on('dl:error',     cb),
+    screenshotDone: cb => on('screenshot:done', cb),
   },
 });
