@@ -7,6 +7,7 @@
   "license": "MIT",
   "scripts": {
     "start": "electron .",
+    "build": "electron-builder --publish=never",
     "build:win": "electron-builder --win",
     "build:win32": "electron-builder --win --ia32"
   },
@@ -21,9 +22,15 @@
     "appId": "com.smartstore.browser",
     "productName": "Smart Store",
     "copyright": "Copyright © 2026 Smart Store",
+    "asar": true,
     "directories": { "output": "dist" },
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
       "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
@@ -32,6 +39,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Smart Store"
-    }
+    },
+    "publish": null
   }
 }
