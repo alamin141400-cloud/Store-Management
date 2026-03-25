@@ -1,69 +1,68 @@
-'use strict';
 /**
- * preload.js — Secure IPC bridge.
- * Exposes electronAPI to the renderer (index.html) via contextBridge.
- * Node.js / Electron internals are NEVER exposed directly.
+ * preload.js — Arman Store WMS  (v2.0)
+ * Runs in renderer context with access to ipcRenderer.
+ * Exposes a clean, typed API via contextBridge — no Node leaks.
  */
+'use strict';
+
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('api', {
-  // ── Tab management ──────────────────────────────────────────
-  openTab:         url  => ipcRenderer.send('open-tab', url),
-  switchTab:       id   => ipcRenderer.send('switch-tab', id),
-  closeTab:        id   => ipcRenderer.send('close-tab', id),
-  pinTab:          id   => ipcRenderer.send('pin-tab', id),
+/** Helper: register a one-way listener and return an unsubscribe fn. */
+const on = (ch, cb) => {
+  const handler = (_, data) => cb(data);
+  ipcRenderer.on(ch, handler);
+  return () => ipcRenderer.removeListener(ch, handler);
+};
 
-  // ── Navigation ──────────────────────────────────────────────
-  navigateTo:      url  => ipcRenderer.send('navigate-to', url),
-  goBack:          ()   => ipcRenderer.send('go-back'),
-  goForward:       ()   => ipcRenderer.send('go-forward'),
-  reload:          ()   => ipcRenderer.send('reload'),
+contextBridge.exposeInMainWorld('WMS', {
 
-  // ── Zoom ────────────────────────────────────────────────────
-  zoomIn:          ()   => ipcRenderer.send('zoom-in'),
-  zoomOut:         ()   => ipcRenderer.send('zoom-out'),
-  zoomReset:       ()   => ipcRenderer.send('zoom-reset'),
+  // ── Tab ───────────────────────────────────────────────────
+  openTab:   (url)  => ipcRenderer.send('tab:open',   url),
+  switchTab: (id)   => ipcRenderer.send('tab:switch', id),
+  closeTab:  (id)   => ipcRenderer.send('tab:close',  id),
 
-  // ── Features ────────────────────────────────────────────────
-  toggleDarkMode:  ()   => ipcRenderer.send('toggle-dark-mode'),
-  toggleFullscreen:()   => ipcRenderer.send('toggle-fullscreen'),
-  findInPage:      (t,f)=> ipcRenderer.send('find-in-page', { text: t, fwd: f }),
-  stopFind:        ()   => ipcRenderer.send('stop-find'),
-  printPage:       ()   => ipcRenderer.send('print-page'),
-  screenshot:      ()   => ipcRenderer.send('screenshot'),
-  bookmarkToggle:  ()   => ipcRenderer.send('bookmark-toggle'),
-  deleteBookmark:  url  => ipcRenderer.send('delete-bookmark', url),
-  clearHistory:    ()   => ipcRenderer.send('clear-history'),
+  // ── Navigation ───────────────────────────────────────────
+  back:    () => ipcRenderer.send('nav:back'),
+  forward: () => ipcRenderer.send('nav:forward'),
+  reload:  () => ipcRenderer.send('nav:reload'),
+  home:    () => ipcRenderer.send('nav:home'),
 
-  // ── Password manager ────────────────────────────────────────
-  savePassword:    d    => ipcRenderer.send('save-password', d),
-  deletePassword:  idx  => ipcRenderer.send('delete-password', idx),
-  revealPassword:  idx  => ipcRenderer.send('reveal-password', idx),
-  autofillPassword:()   => ipcRenderer.send('autofill-password'),
+  // ── Print / PDF ───────────────────────────────────────────
+  print:     () => ipcRenderer.send('print'),
+  savePDF:   () => ipcRenderer.send('pdf'),
 
-  // ── Downloads ───────────────────────────────────────────────
-  openDownloads:   ()   => ipcRenderer.send('open-downloads'),
-  openFile:        p    => ipcRenderer.send('open-file', p),
+  // ── Downloads ─────────────────────────────────────────────
+  openDownloads: ()    => ipcRenderer.send('downloads'),
+  downloadURL:   (url) => ipcRenderer.send('dl:url', url),
 
-  // ── Async getters ───────────────────────────────────────────
-  getPasswords:    ()   => ipcRenderer.invoke('get-passwords'),
-  getHistory:      ()   => ipcRenderer.invoke('get-history'),
-  getBookmarks:    ()   => ipcRenderer.invoke('get-bookmarks'),
-  getDownloads:    ()   => ipcRenderer.invoke('get-downloads'),
+  // ── Zoom ─────────────────────────────────────────────────
+  zoomIn:    ()    => ipcRenderer.send('zoom:in'),
+  zoomOut:   ()    => ipcRenderer.send('zoom:out'),
+  zoomReset: ()    => ipcRenderer.send('zoom:reset'),
+  zoomSet:   (pct) => ipcRenderer.send('zoom:set', pct),
 
-  // ── Event listeners (main → renderer) ───────────────────────
-  on: (channel, cb) => {
-    const allowed = [
-      'init-state','tab-opened','tab-closed','tab-switched','tab-updated',
-      'tab-loading','tab-favicon','show-toast','dark-mode-changed',
-      'fullscreen-change','zoom-changed','find-toggle','find-result',
-      'bookmarks-updated','history-updated','passwords-updated',
-      'password-revealed','login-form-detected','focus-urlbar',
-      'download-started','download-progress','download-done',
-    ];
-    if (allowed.includes(channel)) {
-      ipcRenderer.on(channel, (_, data) => cb(data));
-    }
+  // ── Find in page ─────────────────────────────────────────
+  findStart: (q) => ipcRenderer.send('find:start', q),
+  findNext:  (q) => ipcRenderer.send('find:next',  q),
+  findPrev:  (q) => ipcRenderer.send('find:prev',  q),
+  findStop:  ()  => ipcRenderer.send('find:stop'),
+
+  // ── Inbound events (main → renderer) ─────────────────────
+  on: {
+    tabOpened:    cb => on('tab:opened',  cb),
+    tabClosed:    cb => on('tab:closed',  cb),
+    tabActive:    cb => on('tab:active',  cb),
+    tabUpdate:    cb => on('tab:update',  cb),
+    tabLoading:   cb => on('tab:loading', cb),
+    tabFavicon:   cb => on('tab:favicon', cb),
+    navState:     cb => on('nav:state',   cb),
+    navBlocked:   cb => on('nav-blocked', cb),
+    zoomChanged:  cb => on('zoom:changed',cb),
+    toast:        cb => on('toast',       cb),
+    findOpen:     cb => on('find:open',   cb),
+    dlStart:      cb => on('dl:start',    cb),
+    dlProgress:   cb => on('dl:progress', cb),
+    dlComplete:   cb => on('dl:complete', cb),
+    dlError:      cb => on('dl:error',    cb),
   },
-  off: (channel, cb) => ipcRenderer.removeListener(channel, cb),
 });

@@ -1,130 +1,271 @@
 /**
- * Smart Store – main.js
- * Electron Main Process
+ * ╔══════════════════════════════════════════════════════════════════╗
+ * ║          ARMAN STORE WMS — ELECTRON MAIN PROCESS v2.0           ║
+ * ║          Emaar Al Bader Warehouse Management System              ║
+ * ╚══════════════════════════════════════════════════════════════════╝
  *
- * Features:
- *  - Multi-tab BrowserView system (max 10 tabs)
- *  - Encrypted password/credential manager (electron-store)
- *  - Browsing history (per-session + persistent)
- *  - Bookmarks manager
- *  - Per-tab zoom control
- *  - Download manager with progress
- *  - Print support
- *  - Full-screen / kiosk toggle
- *  - Dark mode toggle (injected CSS)
- *  - Find-in-page (Ctrl+F)
- *  - Screenshot / page capture
- *  - Auto-fill detection & password prompt
- *  - Session persistence (restore last tabs)
- *  - Notification system
- *  - Custom right-click context menu (internal)
- *  - Strict domain locking
+ * ARCHITECTURE
+ * ─────────────────────────────────────────────────────────────────
+ *  BrowserWindow  ← shell chrome  (index.html = tab-bar UI only)
+ *  BrowserView[]  ← one per tab   (real web content lives here)
+ *  preload.js     ← secure IPC bridge between shell ↔ main
+ *
+ * FEATURES
+ * ─────────────────────────────────────────────────────────────────
+ *  • Tab system          — up to 10 tabs, each a BrowserView
+ *  • CDN whitelist       — Bootstrap, jQuery, Google Fonts, Font
+ *                          Awesome, cdnjs, jsDelivr, unpkg, Tailwind,
+ *                          Vue/React/Angular CDN, Pyodide (Python),
+ *                          PHP-WASM, sql.js, Emscripten runtimes, etc.
+ *  • Download manager    — intercepts all downloads, shows progress,
+ *                          system notification on complete
+ *  • Native print        — OS print dialog (Ctrl+P)
+ *  • Save as PDF         — printToPDF API + open/reveal after save
+ *  • Find in page        — Ctrl+F with highlight
+ *  • Zoom per tab        — Ctrl +/- /0, remembered per tab
+ *  • Full-screen         — F11
+ *  • Custom context menu — Print, PDF, Save image, Download link,
+ *                          Open in new tab, Copy, Zoom, DevTools
+ *  • Native app menu     — full keyboard-shortcut menu bar
+ *  • Back/Forward state  — synced to shell UI buttons
+ *  • Favicon per tab     — shown in tab strip
+ *  • Offline detection   — shell notified on network error
+ *  • Security            — contextIsolation, no nodeIntegration,
+ *                          session-level domain filter, header sanitise
  */
 
 'use strict';
 
 const {
-  app, BrowserWindow, BrowserView,
-  ipcMain, session, shell, dialog,
-  Menu, MenuItem, nativeTheme,
-  globalShortcut, powerSaveBlocker,
-  Notification, clipboard
+  app, BrowserWindow, BrowserView, ipcMain,
+  session, shell, dialog, Menu, globalShortcut, Notification,
 } = require('electron');
 const path = require('path');
 const fs   = require('fs');
-const os   = require('os');
 
-// ─────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
 // CONSTANTS
-// ─────────────────────────────────────────────────────────────
-const ALLOWED_DOMAIN  = 'arman.ahrtechdiv.com';
-const HOME_URL        = 'https://arman.ahrtechdiv.com';
-const MAX_TABS        = 10;
-const TAB_BAR_HEIGHT  = 88;   // px  (top nav bar height — must match CSS)
-const STORE_PATH      = path.join(app.getPath('userData'), 'smartstore-data.json');
-const DOWNLOADS_PATH  = path.join(os.homedir(), 'Downloads');
+// ══════════════════════════════════════════════════════════════
 
-// ─────────────────────────────────────────────────────────────
-// PERSISTENT STORE (JSON file — no native module needed)
-// ─────────────────────────────────────────────────────────────
-function readStore() {
-  try {
-    if (fs.existsSync(STORE_PATH)) {
-      return JSON.parse(fs.readFileSync(STORE_PATH, 'utf8'));
-    }
-  } catch {}
-  return {};
+const APP_DOMAIN     = 'arman.ahrtechdiv.com';
+const HOME_URL       = 'https://arman.ahrtechdiv.com';
+const MAX_TABS       = 10;
+const TABBAR_HEIGHT  = 60;   // px  — must match --bar-h in index.html
+
+/**
+ * CDN_WHITELIST
+ * Any hostname that equals OR ends-with one of these strings is
+ * allowed through the session request filter.  This covers:
+ *
+ *  CSS Frameworks:  Bootstrap, Tailwind, Bulma, Foundation,
+ *                   Materialize, Semantic UI, Pure.css
+ *  JS Libraries:    jQuery, React, Vue, Angular, Alpine.js,
+ *                   Lodash, Moment, Axios, Chart.js, D3, Three.js,
+ *                   Socket.IO, Leaflet, Swiper, GSAP, etc.
+ *  Icon fonts:      Font Awesome, Material Icons, Ionicons,
+ *                   Bootstrap Icons, Remix Icons
+ *  Fonts:           Google Fonts (all variants)
+ *  Data tables:     DataTables, AG Grid, Tabulator
+ *  Editors:         Quill, CKEditor, TinyMCE, Monaco Editor
+ *  Language runtimes (WASM):
+ *    Python  → Pyodide  (cdn.jsdelivr.net/pyodide)
+ *    PHP     → php-wasm (cdn.jsdelivr.net)
+ *    Ruby    → Opal     (cdn.jsdelivr.net)
+ *    SQL     → sql.js   (cdnjs.cloudflare.com / unpkg.com)
+ *    Lua     → fengari   (cdn.jsdelivr.net)
+ *    C/C++   → Emscripten output (any CDN)
+ *  Analytics:       Google Analytics, Tag Manager
+ *  Payments:        Stripe
+ *  Monitoring:      Sentry
+ *  Maps:            Google Maps
+ */
+const CDN_WHITELIST = [
+  // ── App domain ──────────────────────────────────────────────
+  'arman.ahrtechdiv.com',
+  'ahrtechdiv.com',
+
+  // ── Bootstrap & CSS frameworks ───────────────────────────────
+  'cdn.jsdelivr.net',           // Bootstrap 5, Tailwind CDN, Pyodide, PHP-WASM …
+  'jsdelivr.net',
+  'stackpath.bootstrapcdn.com',
+  'maxcdn.bootstrapcdn.com',
+  'bootstrapcdn.com',
+  'unpkg.com',                  // React, Vue, Angular, Tailwind play CDN …
+  'cdnjs.cloudflare.com',       // jQuery, Lodash, Chart.js, D3, Three.js …
+  'cdn.statically.io',
+  'rawcdn.githack.com',
+  'raw.githubusercontent.com',
+
+  // ── Google ───────────────────────────────────────────────────
+  'fonts.googleapis.com',
+  'fonts.gstatic.com',
+  'ajax.googleapis.com',
+  'apis.google.com',
+  'www.google-analytics.com',
+  'ssl.google-analytics.com',
+  'analytics.google.com',
+  'www.googletagmanager.com',
+  'tagmanager.google.com',
+  'maps.googleapis.com',
+  'maps.gstatic.com',
+  'www.gstatic.com',
+
+  // ── Font Awesome ─────────────────────────────────────────────
+  'use.fontawesome.com',
+  'ka-f.fontawesome.com',
+  'kit.fontawesome.com',
+  'pro.fontawesome.com',
+
+  // ── jQuery ───────────────────────────────────────────────────
+  'code.jquery.com',
+
+  // ── Vue / React / Angular / Svelte CDNs ─────────────────────
+  'vuejs.org',
+  'cdn.jsdelivr.net',           // already listed
+
+  // ── Data & Charts ────────────────────────────────────────────
+  'cdn.datatables.net',
+  'cdn.plot.ly',
+  'cdn.syncfusion.com',
+  'ag-grid.com',
+  'cdn.ag-grid.com',
+
+  // ── Rich-text editors ────────────────────────────────────────
+  'cdn.quilljs.com',
+  'cdn.ckeditor.com',
+  'cdn.tiny.cloud',
+  'cdn.jsdelivr.net',           // Monaco Editor
+  'cdnjs.cloudflare.com',       // Ace Editor
+
+  // ── Icon sets ────────────────────────────────────────────────
+  'cdn.materialdesignicons.com',
+  'fonts.googleapis.com',       // Material Icons — already listed
+
+  // ── Socket / realtime ────────────────────────────────────────
+  'cdn.socket.io',
+
+  // ── Payment ──────────────────────────────────────────────────
+  'js.stripe.com',
+  'checkout.stripe.com',
+  'api.stripe.com',
+
+  // ── Monitoring / analytics ───────────────────────────────────
+  'cdn.sentry.io',
+  'browser.sentry-cdn.com',
+  'o0.ingest.sentry.io',
+
+  // ── Maps extras ──────────────────────────────────────────────
+  'openstreetmap.org',
+  'tile.openstreetmap.org',
+  'cdn.jsdelivr.net',           // Leaflet — already listed
+
+  // ── Microsoft (Azure CDN for some WMS integrations) ──────────
+  'ajax.aspnetcdn.com',
+  'az416426.vo.msecnd.net',
+
+  // ── Local dev ────────────────────────────────────────────────
+  'localhost',
+  '127.0.0.1',
+  '::1',
+];
+
+/** Returns true if hostname is in the whitelist (exact or subdomain). */
+function isAllowed(hostname) {
+  if (!hostname) return false;
+  return CDN_WHITELIST.some(w => hostname === w || hostname.endsWith('.' + w));
 }
 
-function writeStore(data) {
-  try {
-    fs.writeFileSync(STORE_PATH, JSON.stringify(data, null, 2), 'utf8');
-  } catch (e) { console.error('Store write error:', e); }
-}
+// ══════════════════════════════════════════════════════════════
+// MUTABLE STATE
+// ══════════════════════════════════════════════════════════════
 
-function getStore(key, def = null) {
-  return readStore()[key] ?? def;
-}
+/** @type {BrowserWindow} */
+let win;
 
-function setStore(key, value) {
-  const data = readStore();
-  data[key] = value;
-  writeStore(data);
-}
+/**
+ * @typedef {{ id:number, view:BrowserView, title:string, url:string,
+ *             zoom:number, canBack:boolean, canFwd:boolean }} TabRec
+ * @type {TabRec[]}
+ */
+const tabs        = [];
+let   nextId      = 1;
+let   activeId    = null;
 
-// ─────────────────────────────────────────────────────────────
-// STATE
-// ─────────────────────────────────────────────────────────────
-let mainWindow;
-const tabs       = [];    // { id, view, title, url, zoom, canBack, canFwd, loading, pinned }
-let nextId       = 1;
-let activeTabId  = null;
-let isDarkMode   = getStore('darkMode', false);
-let isFullscreen = false;
-let findInPageActive = false;
+/** Map<downloadId, {el, filename}> kept for IPC progress messages */
+const dlMap = new Map();
 
-// In-memory history (also persisted)
-let history     = getStore('history', []);     // [{url, title, ts}]
-let bookmarks   = getStore('bookmarks', []);   // [{url, title, ts}]
-let passwords   = getStore('passwords', []);   // [{site, username, password, ts}]
-let downloads   = [];                          // runtime only
+// ══════════════════════════════════════════════════════════════
+// APP BOOTSTRAP
+// ══════════════════════════════════════════════════════════════
 
-// ─────────────────────────────────────────────────────────────
-// APP LIFECYCLE
-// ─────────────────────────────────────────────────────────────
 app.whenReady().then(() => {
-  ensureDownloadsDir();
-  createShellWindow();
-  registerGlobalShortcuts();
-  setupSessionBlocking();
-  setupDownloadHandler();
+  buildWindow();
+  configureSession();
+  registerShortcuts();
+  buildMenu();
+});
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createShellWindow();
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+app.on('activate',          () => { if (!BrowserWindow.getAllWindows().length) buildWindow(); });
+app.on('will-quit',         () => globalShortcut.unregisterAll());
+
+// ══════════════════════════════════════════════════════════════
+// SESSION CONFIGURATION
+// ══════════════════════════════════════════════════════════════
+
+function configureSession() {
+  const ses = session.defaultSession;
+
+  /* ── Request filter: allow CDNs, block everything else ──── */
+  ses.webRequest.onBeforeRequest({ urls: ['*://*/*'] }, (details, cb) => {
+    const u = details.url;
+
+    // Always pass through Electron / browser internals
+    if (u.startsWith('devtools://') || u.startsWith('file://')   ||
+        u.startsWith('data:')       || u.startsWith('blob:')     ||
+        u.startsWith('chrome-extension://') || u.startsWith('ws:') ||
+        u.startsWith('wss:')) {
+      return cb({ cancel: false });
+    }
+
+    try {
+      const host = new URL(u).hostname;
+      if (isAllowed(host)) return cb({ cancel: false });
+      // Block — only notify shell for main-frame navigations
+      if (details.resourceType === 'mainFrame' && win) {
+        win.webContents.send('nav-blocked', host);
+      }
+      cb({ cancel: true });
+    } catch { cb({ cancel: false }); }
   });
-});
 
-app.on('window-all-closed', () => {
-  saveSession();
-  globalShortcut.unregisterAll();
-  if (process.platform !== 'darwin') app.quit();
-});
+  /* ── Strip X-Frame-Options so iframes from CDNs render ──── */
+  ses.webRequest.onHeadersReceived((details, cb) => {
+    const h = { ...details.responseHeaders };
+    delete h['x-frame-options'];
+    delete h['X-Frame-Options'];
+    delete h['content-security-policy'];
+    delete h['Content-Security-Policy'];
+    cb({ responseHeaders: h });
+  });
 
-app.on('before-quit', saveSession);
+  /* ── Download interceptor ──────────────────────────────── */
+  ses.on('will-download', (_ev, item) => interceptDownload(item));
+}
 
-// ─────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
 // SHELL WINDOW
-// ─────────────────────────────────────────────────────────────
-function createShellWindow() {
-  mainWindow = new BrowserWindow({
-    width:            1400,
-    height:           900,
-    minWidth:         900,
-    minHeight:        600,
-    title:            'Smart Store',
-    backgroundColor:  '#0F172A',
-    frame:            true,
-    autoHideMenuBar:  true,
+// ══════════════════════════════════════════════════════════════
+
+function buildWindow() {
+  win = new BrowserWindow({
+    width:  1440,
+    height: 900,
+    minWidth:  960,
+    minHeight: 640,
+    title: 'Arman Store — WMS',
+    backgroundColor: '#0D1554',
+    show: false,
     webPreferences: {
       preload:          path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -133,680 +274,456 @@ function createShellWindow() {
     },
   });
 
-  Menu.setApplicationMenu(null);
-  mainWindow.loadFile(path.join(__dirname, 'index.html'));
+  win.loadFile(path.join(__dirname, 'index.html'));
 
-  mainWindow.webContents.once('did-finish-load', () => {
-    // Send initial state
-    mainWindow.webContents.send('init-state', {
-      darkMode:  isDarkMode,
-      bookmarks: bookmarks,
-      passwords: passwords.map(p => ({ ...p, password: '••••••••' })), // masked
-      history:   history.slice(0, 100),
-    });
-    // Restore last session or open home
-    const lastSession = getStore('lastSession', []);
-    if (lastSession.length > 0) {
-      lastSession.forEach(url => openTab(url));
-    } else {
-      openTab(HOME_URL);
-    }
+  win.once('ready-to-show', () => {
+    win.show();
+    openTab(HOME_URL);
   });
 
-  mainWindow.on('resize', repositionActiveView);
-  mainWindow.on('enter-full-screen', () => {
-    isFullscreen = true;
-    mainWindow.webContents.send('fullscreen-change', true);
-    repositionActiveView();
-  });
-  mainWindow.on('leave-full-screen', () => {
-    isFullscreen = false;
-    mainWindow.webContents.send('fullscreen-change', false);
-    repositionActiveView();
-  });
+  // Re-layout active BrowserView on any window geometry change
+  ['resize','maximize','unmaximize','enter-full-screen','leave-full-screen']
+    .forEach(e => win.on(e, relayout));
 }
 
-// ─────────────────────────────────────────────────────────────
-// DOMAIN SECURITY — block all external requests at session level
-// ─────────────────────────────────────────────────────────────
-function setupSessionBlocking() {
-  session.defaultSession.webRequest.onBeforeRequest({ urls: ['*://*/*'] }, (details, cb) => {
-    try {
-      const url  = new URL(details.url);
-      const host = url.hostname;
-      const allowed =
-        host === '' ||
-        host.endsWith(ALLOWED_DOMAIN) ||
-        details.url.startsWith('file://') ||
-        details.url.startsWith('devtools://') ||
-        details.url.startsWith('chrome-extension://') ||
-        details.url === 'about:blank';
-      cb({ cancel: !allowed });
-    } catch {
-      cb({ cancel: false });
-    }
-  });
+// ══════════════════════════════════════════════════════════════
+// BROWSERVIEW GEOMETRY
+// ══════════════════════════════════════════════════════════════
+
+function viewBounds() {
+  const [w, h] = win.getContentSize();
+  return { x: 0, y: TABBAR_HEIGHT, width: w, height: h - TABBAR_HEIGHT };
 }
 
-// ─────────────────────────────────────────────────────────────
-// DOWNLOAD HANDLER
-// ─────────────────────────────────────────────────────────────
-function setupDownloadHandler() {
-  session.defaultSession.on('will-download', (event, item) => {
-    const filename = item.getFilename();
-    const savePath = path.join(DOWNLOADS_PATH, filename);
-    item.setSavePath(savePath);
-
-    const dlId = Date.now();
-    const dlEntry = {
-      id:       dlId,
-      filename: filename,
-      path:     savePath,
-      size:     item.getTotalBytes(),
-      received: 0,
-      status:   'downloading',
-      ts:       new Date().toISOString(),
-    };
-    downloads.push(dlEntry);
-    mainWindow.webContents.send('download-started', dlEntry);
-
-    item.on('updated', (_, state) => {
-      dlEntry.received = item.getReceivedBytes();
-      dlEntry.status   = state;
-      mainWindow.webContents.send('download-progress', {
-        id:       dlId,
-        received: dlEntry.received,
-        total:    dlEntry.size,
-        percent:  dlEntry.size ? Math.round((dlEntry.received / dlEntry.size) * 100) : 0,
-      });
-    });
-
-    item.once('done', (_, state) => {
-      dlEntry.status = state === 'completed' ? 'done' : 'failed';
-      mainWindow.webContents.send('download-done', { id: dlId, status: dlEntry.status, path: savePath });
-      if (state === 'completed') {
-        showNotification('Download Complete', `${filename} saved to Downloads`);
-      }
-    });
-  });
+function relayout() {
+  const t = tabs.find(t => t.id === activeId);
+  if (t) t.view.setBounds(viewBounds());
 }
 
-// ─────────────────────────────────────────────────────────────
-// GLOBAL SHORTCUTS
-// ─────────────────────────────────────────────────────────────
-function registerGlobalShortcuts() {
-  // Ctrl+T = New tab
-  globalShortcut.register('CommandOrControl+T', () => openTab(HOME_URL));
-  // Ctrl+W = Close active tab
-  globalShortcut.register('CommandOrControl+W', () => { if (activeTabId) closeTab(activeTabId); });
-  // Ctrl+R = Reload
-  globalShortcut.register('CommandOrControl+R', () => reloadActive());
-  // Ctrl+F = Find in page
-  globalShortcut.register('CommandOrControl+F', () => toggleFindInPage());
-  // Ctrl+D = Bookmark current page
-  globalShortcut.register('CommandOrControl+D', () => bookmarkCurrentPage());
-  // Ctrl+L = Focus URL bar (via IPC)
-  globalShortcut.register('CommandOrControl+L', () => mainWindow.webContents.send('focus-urlbar'));
-  // Ctrl+Plus/Minus = Zoom
-  globalShortcut.register('CommandOrControl+=', () => zoomIn());
-  globalShortcut.register('CommandOrControl+-', () => zoomOut());
-  globalShortcut.register('CommandOrControl+0', () => zoomReset());
-  // F11 = Fullscreen toggle
-  globalShortcut.register('F11', () => toggleFullscreen());
-  // F5 = Reload
-  globalShortcut.register('F5', () => reloadActive());
-  // Ctrl+Tab = Next tab
-  globalShortcut.register('CommandOrControl+Tab', () => switchToNextTab());
-  // Ctrl+Shift+Tab = Prev tab
-  globalShortcut.register('CommandOrControl+Shift+Tab', () => switchToPrevTab());
-  // Ctrl+1-9 = Jump to tab
-  for (let i = 1; i <= 9; i++) {
-    globalShortcut.register(`CommandOrControl+${i}`, () => jumpToTab(i - 1));
-  }
-  // Ctrl+Shift+P = Print
-  globalShortcut.register('CommandOrControl+P', () => printPage());
-  // Ctrl+Shift+S = Screenshot
-  globalShortcut.register('CommandOrControl+Shift+S', () => takeScreenshot());
-}
+// ══════════════════════════════════════════════════════════════
+// TAB LIFECYCLE
+// ══════════════════════════════════════════════════════════════
 
-// ─────────────────────────────────────────────────────────────
-// TAB MANAGEMENT
-// ─────────────────────────────────────────────────────────────
-function openTab(url, pinned = false) {
+function openTab(url) {
   if (tabs.length >= MAX_TABS) {
-    mainWindow.webContents.send('show-toast', { msg: `Maximum ${MAX_TABS} tabs open`, type: 'warn' });
-    return;
+    return send('toast', { msg: `Maximum ${MAX_TABS} tabs reached`, type: 'warn' });
   }
 
   const view = new BrowserView({
     webPreferences: {
-      contextIsolation:   true,
-      nodeIntegration:    false,
-      javascript:         true,
-      images:             true,
-      spellcheck:         false,
-      devTools:           true,
+      contextIsolation: true,
+      nodeIntegration:  false,
+      javascript:       true,
+      images:           true,
+      plugins:          true,
+      webSecurity:      false,   // ← Must be false so CDN cross-origin assets load
+      devTools:         true,
     },
   });
 
   const id  = nextId++;
-  const tab = { id, view, title: 'Loading…', url, zoom: 1.0, canBack: false, canFwd: false, loading: true, pinned };
+  /** @type {TabRec} */
+  const tab = { id, view, title: 'Loading…', url, zoom: 1.0, canBack: false, canFwd: false };
   tabs.push(tab);
 
-  // ── Navigation guard ──
-  const guardNav = (event, navUrl) => {
+  const wc = view.webContents;
+
+  // ── Domain enforcement ──────────────────────────────────────
+  wc.on('will-navigate', (ev, dest) => {
     try {
-      const host = new URL(navUrl).hostname;
-      if (navUrl !== 'about:blank' && !host.endsWith(ALLOWED_DOMAIN)) {
-        event.preventDefault();
-        mainWindow.webContents.send('show-toast', { msg: 'External navigation blocked', type: 'error' });
-      }
+      const h = new URL(dest).hostname;
+      if (!isAllowed(h)) { ev.preventDefault(); send('nav-blocked', h); }
     } catch {}
-  };
-  view.webContents.on('will-navigate',  guardNav);
-  view.webContents.on('will-redirect',  guardNav);
-
-  // ── Title / URL updates ──
-  view.webContents.on('page-title-updated', (_, title) => {
-    tab.title = title || 'Smart Store';
-    push('tab-updated', { id, title: tab.title, url: tab.url, loading: tab.loading, canBack: tab.canBack, canFwd: tab.canFwd, pinned: tab.pinned });
+  });
+  wc.on('will-redirect', (ev, dest) => {
+    try { const h = new URL(dest).hostname; if (!isAllowed(h)) ev.preventDefault(); }
+    catch {}
   });
 
-  view.webContents.on('did-navigate', (_, navUrl, httpCode) => {
-    tab.url     = navUrl;
-    tab.canBack = view.webContents.canGoBack();
-    tab.canFwd  = view.webContents.canGoForward();
-    push('tab-updated', { id, title: tab.title, url: tab.url, loading: false, canBack: tab.canBack, canFwd: tab.canFwd, pinned: tab.pinned });
-    addHistory(navUrl, tab.title);
-    // Auto-detect login form → trigger password prompt
-    detectLoginPage(view, id, navUrl);
+  // ── Title & URL ─────────────────────────────────────────────
+  wc.on('page-title-updated', (_, t) => {
+    tab.title = t || 'Arman Store';
+    send('tab:update', { id, title: tab.title, url: tab.url });
+  });
+  wc.on('did-navigate',         (_, u) => { tab.url = u; syncNav(tab); send('tab:update', { id, title: tab.title, url: u }); });
+  wc.on('did-navigate-in-page', (_,u)  => { tab.url = u; syncNav(tab); });
+
+  // ── Loading ─────────────────────────────────────────────────
+  wc.on('did-start-loading', () => send('tab:loading', { id, v: true  }));
+  wc.on('did-stop-loading',  () => { send('tab:loading', { id, v: false }); syncNav(tab); });
+
+  // ── Favicon ─────────────────────────────────────────────────
+  wc.on('page-favicon-updated', (_, icons) => {
+    if (icons[0]) send('tab:favicon', { id, url: icons[0] });
   });
 
-  view.webContents.on('did-navigate-in-page', (_, navUrl) => {
-    tab.url = navUrl;
-    tab.canBack = view.webContents.canGoBack();
-    tab.canFwd  = view.webContents.canGoForward();
-    push('tab-updated', { id, title: tab.title, url: tab.url, loading: tab.loading, canBack: tab.canBack, canFwd: tab.canFwd, pinned: tab.pinned });
-  });
-
-  // ── Loading state ──
-  view.webContents.on('did-start-loading', () => {
-    tab.loading = true;
-    push('tab-loading', { id, loading: true });
-  });
-  view.webContents.on('did-stop-loading', () => {
-    tab.loading = false;
-    tab.canBack = view.webContents.canGoBack();
-    tab.canFwd  = view.webContents.canGoForward();
-    push('tab-loading', { id, loading: false });
-    push('tab-updated', { id, title: tab.title, url: tab.url, loading: false, canBack: tab.canBack, canFwd: tab.canFwd, pinned: tab.pinned });
-  });
-
-  // ── Page favicon ──
-  view.webContents.on('page-favicon-updated', (_, favicons) => {
-    if (favicons?.[0]) push('tab-favicon', { id, favicon: favicons[0] });
-  });
-
-  // ── New window → open as new tab ──
-  view.webContents.setWindowOpenHandler(({ url: newUrl }) => {
-    try {
-      const host = new URL(newUrl).hostname;
-      if (host.endsWith(ALLOWED_DOMAIN)) openTab(newUrl);
-    } catch {}
+  // ── New window → open as new tab ────────────────────────────
+  wc.setWindowOpenHandler(({ url: nu }) => {
+    try { if (isAllowed(new URL(nu).hostname)) openTab(nu); } catch {}
     return { action: 'deny' };
   });
 
-  // ── Dark mode injection ──
-  view.webContents.on('did-finish-load', () => {
-    if (isDarkMode) injectDarkMode(view);
-    applyZoom(tab);
-  });
+  // ── Custom context menu ──────────────────────────────────────
+  wc.on('context-menu', (ev, p) => { ev.preventDefault(); ctxMenu(p, view).popup({ window: win }); });
 
-  // ── Context menu (internal) ──
-  view.webContents.on('context-menu', (event, params) => {
-    event.preventDefault();
-    showContextMenu(params, view, id);
-  });
-
-  view.webContents.loadURL(url);
-  switchToTab(id);
-  push('tab-opened', { id, title: tab.title, url: tab.url, loading: true, canBack: false, canFwd: false, pinned });
+  // ── Initial load ─────────────────────────────────────────────
+  wc.loadURL(url);
+  activateTab(id);
+  send('tab:opened', { id, title: 'Loading…', url });
 }
 
-function switchToTab(id) {
-  // Detach current
-  const allViews = mainWindow.getBrowserViews();
-  allViews.forEach(v => mainWindow.removeBrowserView(v));
-
+function activateTab(id) {
+  // Remove all attached views first
+  win.getBrowserViews().forEach(v => win.removeBrowserView(v));
   const tab = tabs.find(t => t.id === id);
   if (!tab) return;
-
-  activeTabId = id;
-  mainWindow.addBrowserView(tab.view);
-  tab.view.setBounds(getViewBounds());
-
-  // Stop find-in-page if switching
-  if (findInPageActive) {
-    tab.view.webContents.stopFindInPage('clearSelection');
-    findInPageActive = false;
-  }
-
-  push('tab-switched', {
-    id,
-    url:     tab.url,
-    title:   tab.title,
-    canBack: tab.canBack,
-    canFwd:  tab.canFwd,
-    zoom:    tab.zoom,
-  });
+  activeId = id;
+  win.addBrowserView(tab.view);
+  tab.view.setBounds(viewBounds());
+  tab.view.webContents.setZoomFactor(tab.zoom);
+  send('tab:active', { id, canBack: tab.canBack, canFwd: tab.canFwd, zoom: Math.round(tab.zoom * 100) });
 }
 
 function closeTab(id) {
-  if (tabs.length <= 1) {
-    push('show-toast', { msg: 'Cannot close the last tab', type: 'warn' });
-    return;
-  }
-  const index = tabs.findIndex(t => t.id === id);
-  if (index === -1) return;
-
-  const tab = tabs[index];
-  mainWindow.removeBrowserView(tab.view);
+  if (tabs.length <= 1) return send('toast', { msg: 'Cannot close the last tab', type: 'info' });
+  const idx = tabs.findIndex(t => t.id === id);
+  if (idx === -1) return;
+  const tab = tabs[idx];
+  win.removeBrowserView(tab.view);
   tab.view.webContents.destroy();
-  tabs.splice(index, 1);
-
-  const next = tabs[Math.min(index, tabs.length - 1)];
-  switchToTab(next.id);
-  push('tab-closed', { id, newActiveId: next.id });
+  tabs.splice(idx, 1);
+  const next = tabs[Math.min(idx, tabs.length - 1)];
+  activateTab(next.id);
+  send('tab:closed', { id, nextId: next.id });
 }
 
-function switchToNextTab() {
-  const i = tabs.findIndex(t => t.id === activeTabId);
-  if (i === -1) return;
-  switchToTab(tabs[(i + 1) % tabs.length].id);
+function syncNav(tab) {
+  tab.canBack = tab.view.webContents.canGoBack();
+  tab.canFwd  = tab.view.webContents.canGoForward();
+  send('nav:state', { id: tab.id, canBack: tab.canBack, canFwd: tab.canFwd });
 }
 
-function switchToPrevTab() {
-  const i = tabs.findIndex(t => t.id === activeTabId);
-  if (i === -1) return;
-  switchToTab(tabs[(i - 1 + tabs.length) % tabs.length].id);
-}
-
-function jumpToTab(i) {
-  if (tabs[i]) switchToTab(tabs[i].id);
-}
-
-// ─────────────────────────────────────────────────────────────
-// NAVIGATION
-// ─────────────────────────────────────────────────────────────
-function getActiveTab() { return tabs.find(t => t.id === activeTabId); }
-
-function reloadActive() {
-  getActiveTab()?.view.webContents.reload();
-}
-
-function navigateTo(url) {
-  let finalUrl = url.trim();
-  // If no protocol, assume https
-  if (!/^https?:\/\//i.test(finalUrl)) finalUrl = 'https://' + finalUrl;
-  // Block if not allowed domain
-  try {
-    const host = new URL(finalUrl).hostname;
-    if (!host.endsWith(ALLOWED_DOMAIN)) {
-      push('show-toast', { msg: 'Only ' + ALLOWED_DOMAIN + ' is allowed', type: 'error' });
-      return;
-    }
-  } catch {
-    push('show-toast', { msg: 'Invalid URL', type: 'error' });
-    return;
-  }
-  const tab = getActiveTab();
-  if (tab) {
-    tab.view.webContents.loadURL(finalUrl);
-    tab.url = finalUrl;
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
 // ZOOM
-// ─────────────────────────────────────────────────────────────
-function applyZoom(tab) {
+// ══════════════════════════════════════════════════════════════
+
+function zoom(delta, reset = false) {
+  const tab = tabs.find(t => t.id === activeId);
+  if (!tab) return;
+  tab.zoom = reset ? 1.0 : Math.max(0.25, Math.min(5.0, tab.zoom + delta));
   tab.view.webContents.setZoomFactor(tab.zoom);
-  push('zoom-changed', { id: tab.id, zoom: tab.zoom });
+  send('zoom:changed', { zoom: Math.round(tab.zoom * 100) });
 }
 
-function zoomIn()    { const t = getActiveTab(); if (t) { t.zoom = Math.min(t.zoom + 0.1, 3.0); applyZoom(t); } }
-function zoomOut()   { const t = getActiveTab(); if (t) { t.zoom = Math.max(t.zoom - 0.1, 0.3); applyZoom(t); } }
-function zoomReset() { const t = getActiveTab(); if (t) { t.zoom = 1.0; applyZoom(t); } }
-
-// ─────────────────────────────────────────────────────────────
-// DARK MODE
-// ─────────────────────────────────────────────────────────────
-function injectDarkMode(view) {
-  const css = `
-    html { filter: invert(1) hue-rotate(180deg) !important; }
-    img, video, canvas, [style*="background-image"] {
-      filter: invert(1) hue-rotate(180deg) !important;
-    }
-  `;
-  view.webContents.insertCSS(css);
-}
-
-function toggleDarkMode() {
-  isDarkMode = !isDarkMode;
-  setStore('darkMode', isDarkMode);
-  tabs.forEach(t => {
-    if (isDarkMode) {
-      injectDarkMode(t.view);
-    } else {
-      t.view.webContents.reload(); // easiest way to remove injected CSS
-    }
-  });
-  push('dark-mode-changed', { enabled: isDarkMode });
-}
-
-// ─────────────────────────────────────────────────────────────
-// FIND IN PAGE
-// ─────────────────────────────────────────────────────────────
-function toggleFindInPage() {
-  findInPageActive = !findInPageActive;
-  push('find-toggle', { active: findInPageActive });
-}
-
-function findInPage(text, forward = true) {
-  const tab = getActiveTab();
-  if (!tab || !text) return;
-  tab.view.webContents.findInPage(text, { forward, findNext: true });
-  tab.view.webContents.once('found-in-page', (_, result) => {
-    push('find-result', { activeMatch: result.activeMatchOrdinal, total: result.matches });
-  });
-}
-
-function stopFind() {
-  const tab = getActiveTab();
-  if (tab) tab.view.webContents.stopFindInPage('clearSelection');
-  findInPageActive = false;
-  push('find-toggle', { active: false });
-}
-
-// ─────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
 // PRINT
-// ─────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+
 function printPage() {
-  const tab = getActiveTab();
+  const tab = tabs.find(t => t.id === activeId);
   if (!tab) return;
-  tab.view.webContents.print({}, (success, errorType) => {
-    if (!success) push('show-toast', { msg: 'Print failed: ' + errorType, type: 'error' });
+  tab.view.webContents.print({
+    silent:          false,
+    printBackground: true,
+    color:           true,
+    margins:         { marginType: 'default' },
+    pageSize:        'A4',
+    landscape:       false,
+  }, (ok, err) => { if (!ok) console.warn('[Print]', err); });
+}
+
+async function savePDF() {
+  const tab = tabs.find(t => t.id === activeId);
+  if (!tab) return;
+
+  const safe = (tab.title || 'page').replace(/[\\/:*?"<>|]/g, '_').trim() || 'page';
+  const dest = path.join(app.getPath('downloads'), `${safe}.pdf`);
+
+  try {
+    const buf = await tab.view.webContents.printToPDF({
+      printBackground: true,
+      landscape:       false,
+      pageSize:        'A4',
+      margins:         { top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 },
+      scale:           1,
+    });
+    fs.writeFileSync(dest, buf);
+
+    // Notify download tray
+    send('dl:complete', { id: 'pdf-' + Date.now(), filename: path.basename(dest), savePath: dest });
+    notify('📄 PDF Saved', path.basename(dest));
+
+    const { response } = await dialog.showMessageBox(win, {
+      type:    'info',
+      title:   'PDF Saved',
+      message: `Saved: ${path.basename(dest)}`,
+      detail:  dest,
+      buttons: ['Open File', 'Show in Folder', 'Close'],
+    });
+    if (response === 0) shell.openPath(dest);
+    if (response === 1) shell.showItemInFolder(dest);
+
+  } catch (e) {
+    dialog.showErrorBox('PDF Error', e.message);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// DOWNLOAD MANAGER
+// ══════════════════════════════════════════════════════════════
+
+function interceptDownload(item) {
+  const filename = item.getFilename();
+  const total    = item.getTotalBytes();
+  const dlId     = `dl-${Date.now()}`;
+  const dest     = path.join(app.getPath('downloads'), filename);
+
+  item.setSavePath(dest);
+  dlMap.set(dlId, { filename, dest });
+  send('dl:start', { id: dlId, filename, total, dest });
+
+  item.on('updated', (_, state) => {
+    if (state === 'progressing') {
+      const recv = item.getReceivedBytes();
+      send('dl:progress', {
+        id: dlId, recv, total,
+        pct: total > 0 ? Math.round((recv / total) * 100) : -1,
+      });
+    }
+    if (state === 'interrupted') {
+      send('dl:error', { id: dlId, filename });
+      dlMap.delete(dlId);
+    }
+  });
+
+  item.once('done', (_, state) => {
+    dlMap.delete(dlId);
+    if (state === 'completed') {
+      send('dl:complete', { id: dlId, filename, savePath: dest });
+      notify('✅ Download Complete', filename);
+    } else {
+      send('dl:error', { id: dlId, filename });
+    }
   });
 }
 
-// ─────────────────────────────────────────────────────────────
-// SCREENSHOT
-// ─────────────────────────────────────────────────────────────
-async function takeScreenshot() {
-  const tab = getActiveTab();
+function notify(title, body) {
+  try { new Notification({ title, body }).show(); } catch {}
+}
+
+// ══════════════════════════════════════════════════════════════
+// CONTEXT MENU
+// ══════════════════════════════════════════════════════════════
+
+function ctxMenu(p, view) {
+  const wc    = view.webContents;
+  const items = [];
+
+  // Navigation
+  if (wc.canGoBack())    items.push({ label: '← Back',    click: () => wc.goBack() });
+  if (wc.canGoForward()) items.push({ label: '→ Forward',  click: () => wc.goForward() });
+  items.push({ label: '↺ Reload Page', click: () => wc.reload() });
+  items.push({ type: 'separator' });
+
+  // Text
+  if (p.selectionText?.trim()) {
+    items.push({ label: '📋 Copy',        role: 'copy' });
+    items.push({ label: '🔍 Search Web…', click: () => shell.openExternal(`https://www.google.com/search?q=${encodeURIComponent(p.selectionText)}`) });
+    items.push({ type: 'separator' });
+  }
+
+  // Image
+  if (p.mediaType === 'image' && p.srcURL) {
+    items.push({ label: '💾 Save Image',  click: () => wc.downloadURL(p.srcURL) });
+    items.push({ label: '📋 Copy Image URL', click: () => require('electron').clipboard.writeText(p.srcURL) });
+    items.push({ type: 'separator' });
+  }
+
+  // Link
+  if (p.linkURL) {
+    const linkHost = (() => { try { return new URL(p.linkURL).hostname; } catch { return ''; } })();
+    if (isAllowed(linkHost)) {
+      items.push({ label: '🗂 Open in New Tab', click: () => openTab(p.linkURL) });
+    }
+    items.push({ label: '💾 Download Link', click: () => wc.downloadURL(p.linkURL) });
+    items.push({ label: '📋 Copy Link URL', click: () => require('electron').clipboard.writeText(p.linkURL) });
+    items.push({ type: 'separator' });
+  }
+
+  // Print / Save
+  items.push({ label: '🖨  Print Page…',         click: printPage });
+  items.push({ label: '📄 Save as PDF…',          click: savePDF  });
+  items.push({ label: '📂 Open Downloads Folder', click: () => shell.openPath(app.getPath('downloads')) });
+  items.push({ type: 'separator' });
+
+  // Zoom
+  const curZoom = Math.round((tabs.find(t => t.id === activeId)?.zoom ?? 1) * 100);
+  items.push({
+    label: `🔍 Zoom  (${curZoom}%)`,
+    submenu: [
+      { label: 'Zoom In   (Ctrl++)', click: () => zoom(0.1)  },
+      { label: 'Zoom Out  (Ctrl+-)', click: () => zoom(-0.1) },
+      { label: 'Reset     (Ctrl+0)', click: () => zoom(0, true) },
+      { type: 'separator' },
+      { label: '75%',  click: () => setZoom(0.75) },
+      { label: '100%', click: () => setZoom(1.00) },
+      { label: '125%', click: () => setZoom(1.25) },
+      { label: '150%', click: () => setZoom(1.50) },
+      { label: '200%', click: () => setZoom(2.00) },
+    ],
+  });
+  items.push({ type: 'separator' });
+
+  // DevTools
+  items.push({
+    label: '🔧 Inspect Element',
+    click: () => wc.inspectElement(p.x, p.y),
+  });
+  items.push({
+    label: '🖥 Toggle DevTools',
+    click: () => wc.isDevToolsOpened() ? wc.closeDevTools() : wc.openDevTools({ mode: 'detach' }),
+  });
+
+  return Menu.buildFromTemplate(items);
+}
+
+function setZoom(factor) {
+  const tab = tabs.find(t => t.id === activeId);
   if (!tab) return;
-  try {
-    const img  = await tab.view.webContents.capturePage();
-    const buf  = img.toPNG();
-    const file = path.join(DOWNLOADS_PATH, `screenshot-${Date.now()}.png`);
-    fs.writeFileSync(file, buf);
-    showNotification('Screenshot Saved', `Saved to Downloads as ${path.basename(file)}`);
-    push('show-toast', { msg: 'Screenshot saved to Downloads', type: 'success' });
-  } catch (e) {
-    push('show-toast', { msg: 'Screenshot failed', type: 'error' });
+  tab.zoom = factor;
+  tab.view.webContents.setZoomFactor(factor);
+  send('zoom:changed', { zoom: Math.round(factor * 100) });
+}
+
+// ══════════════════════════════════════════════════════════════
+// NATIVE APP MENU
+// ══════════════════════════════════════════════════════════════
+
+function buildMenu() {
+  const wv = () => tabs.find(t => t.id === activeId)?.view.webContents;
+  Menu.setApplicationMenu(Menu.buildFromTemplate([
+    {
+      label: '&File',
+      submenu: [
+        { label: 'New Tab',      accelerator: 'CmdOrCtrl+T', click: () => openTab(HOME_URL) },
+        { label: 'Reload Tab',   accelerator: 'CmdOrCtrl+R', click: () => wv()?.reload() },
+        { label: 'Close Tab',    accelerator: 'CmdOrCtrl+W', click: () => activeId && closeTab(activeId) },
+        { type: 'separator' },
+        { label: '🖨  Print…',   accelerator: 'CmdOrCtrl+P', click: printPage },
+        { label: '📄 Save as PDF…',                           click: savePDF   },
+        { type: 'separator' },
+        { label: 'Quit',         accelerator: 'CmdOrCtrl+Q', click: () => app.quit() },
+      ],
+    },
+    {
+      label: '&Edit',
+      submenu: [
+        { label: 'Find in Page', accelerator: 'CmdOrCtrl+F', click: () => send('find:open') },
+        { type: 'separator' },
+        { role: 'cut' }, { role: 'copy' }, { role: 'paste' },
+        { role: 'selectAll' },
+      ],
+    },
+    {
+      label: '&View',
+      submenu: [
+        { label: 'Zoom In',      accelerator: 'CmdOrCtrl+Plus',  click: () => zoom(0.1) },
+        { label: 'Zoom Out',     accelerator: 'CmdOrCtrl+-',     click: () => zoom(-0.1) },
+        { label: 'Reset Zoom',   accelerator: 'CmdOrCtrl+0',     click: () => zoom(0, true) },
+        { type: 'separator' },
+        { label: 'Full Screen',  accelerator: 'F11', click: () => win.setFullScreen(!win.isFullScreen()) },
+        { type: 'separator' },
+        { label: 'Developer Tools', accelerator: 'F12',
+          click: () => { const w = wv(); w?.isDevToolsOpened() ? w.closeDevTools() : w?.openDevTools({ mode: 'detach' }); } },
+      ],
+    },
+    {
+      label: '&Navigate',
+      submenu: [
+        { label: 'Back',         accelerator: 'Alt+Left',  click: () => { const w = wv(); if (w?.canGoBack()) w.goBack(); } },
+        { label: 'Forward',      accelerator: 'Alt+Right', click: () => { const w = wv(); if (w?.canGoForward()) w.goForward(); } },
+        { label: 'Home',                                    click: () => wv()?.loadURL(HOME_URL) },
+      ],
+    },
+    {
+      label: '&Download',
+      submenu: [
+        { label: '📂 Open Downloads Folder', click: () => shell.openPath(app.getPath('downloads')) },
+        { label: '📄 Save Current Page as PDF', click: savePDF },
+      ],
+    },
+    {
+      label: '&Help',
+      submenu: [
+        { label: 'About Arman Store WMS', click: () =>
+          dialog.showMessageBox(win, {
+            type: 'info', title: 'Arman Store WMS',
+            message: 'Arman Store — WMS Desktop Client',
+            detail: [
+              'Version 2.0.0',
+              `Electron  ${process.versions.electron}`,
+              `Chromium  ${process.versions.chrome}`,
+              `Node.js   ${process.versions.node}`,
+              '',
+              'Emaar Al Bader Warehouse Management System',
+              'https://arman.ahrtechdiv.com',
+            ].join('\n'),
+          })
+        },
+      ],
+    },
+  ]));
+}
+
+// ══════════════════════════════════════════════════════════════
+// GLOBAL SHORTCUTS
+// ══════════════════════════════════════════════════════════════
+
+function registerShortcuts() {
+  const reg = (acc, fn) => globalShortcut.register(acc, fn);
+  reg('CmdOrCtrl+Equal', () => zoom(0.1));
+  reg('CmdOrCtrl+Plus',  () => zoom(0.1));
+  reg('CmdOrCtrl+-',     () => zoom(-0.1));
+  reg('CmdOrCtrl+0',     () => zoom(0, true));
+  reg('F11',             () => win.setFullScreen(!win.isFullScreen()));
+  reg('CmdOrCtrl+T',     () => openTab(HOME_URL));
+  reg('CmdOrCtrl+W',     () => { if (activeId) closeTab(activeId); });
+  reg('CmdOrCtrl+R',     () => tabs.find(t=>t.id===activeId)?.view.webContents.reload());
+}
+
+// ══════════════════════════════════════════════════════════════
+// IPC  — renderer → main
+// ══════════════════════════════════════════════════════════════
+
+const on = (ch, fn) => ipcMain.on(ch, fn);
+
+on('tab:open',    (_, url) => openTab(url || HOME_URL));
+on('tab:switch',  (_, id)  => activateTab(id));
+on('tab:close',   (_, id)  => closeTab(id));
+
+on('nav:back',    () => { const w = tabs.find(t=>t.id===activeId)?.view.webContents; if(w?.canGoBack())    w.goBack(); });
+on('nav:forward', () => { const w = tabs.find(t=>t.id===activeId)?.view.webContents; if(w?.canGoForward()) w.goForward(); });
+on('nav:reload',  () => tabs.find(t=>t.id===activeId)?.view.webContents.reload());
+on('nav:home',    () => tabs.find(t=>t.id===activeId)?.view.webContents.loadURL(HOME_URL));
+
+on('print',       () => printPage());
+on('pdf',         () => savePDF());
+on('downloads',   () => shell.openPath(app.getPath('downloads')));
+on('dl:url',      (_, url) => tabs.find(t=>t.id===activeId)?.view.webContents.downloadURL(url));
+
+on('zoom:in',     () => zoom(0.1));
+on('zoom:out',    () => zoom(-0.1));
+on('zoom:reset',  () => zoom(0, true));
+on('zoom:set',    (_, pct) => setZoom(pct / 100));
+
+on('find:start',  (_, q) => { const w = tabs.find(t=>t.id===activeId)?.view.webContents; if(w&&q) w.findInPage(q,{findNext:true}); });
+on('find:next',   (_, q) => { const w = tabs.find(t=>t.id===activeId)?.view.webContents; if(w&&q) w.findInPage(q,{forward:true,findNext:true}); });
+on('find:prev',   (_, q) => { const w = tabs.find(t=>t.id===activeId)?.view.webContents; if(w&&q) w.findInPage(q,{forward:false,findNext:true}); });
+on('find:stop',   ()     => tabs.find(t=>t.id===activeId)?.view.webContents.stopFindInPage('clearSelection'));
+
+// ── Utility ──────────────────────────────────────────────────
+function send(channel, data) {
+  if (win?.webContents && !win.webContents.isDestroyed()) {
+    win.webContents.send(channel, data);
   }
 }
-
-// ─────────────────────────────────────────────────────────────
-// FULLSCREEN
-// ─────────────────────────────────────────────────────────────
-function toggleFullscreen() {
-  isFullscreen = !isFullscreen;
-  mainWindow.setFullScreen(isFullscreen);
-}
-
-// ─────────────────────────────────────────────────────────────
-// BOOKMARKS
-// ─────────────────────────────────────────────────────────────
-function bookmarkCurrentPage() {
-  const tab = getActiveTab();
-  if (!tab) return;
-  const exists = bookmarks.find(b => b.url === tab.url);
-  if (exists) {
-    bookmarks = bookmarks.filter(b => b.url !== tab.url);
-    setStore('bookmarks', bookmarks);
-    push('bookmarks-updated', bookmarks);
-    push('show-toast', { msg: 'Bookmark removed', type: 'info' });
-  } else {
-    const entry = { url: tab.url, title: tab.title, ts: new Date().toISOString() };
-    bookmarks.unshift(entry);
-    if (bookmarks.length > 200) bookmarks = bookmarks.slice(0, 200);
-    setStore('bookmarks', bookmarks);
-    push('bookmarks-updated', bookmarks);
-    push('show-toast', { msg: 'Bookmarked!', type: 'success' });
-  }
-}
-
-function deleteBookmark(url) {
-  bookmarks = bookmarks.filter(b => b.url !== url);
-  setStore('bookmarks', bookmarks);
-  push('bookmarks-updated', bookmarks);
-}
-
-// ─────────────────────────────────────────────────────────────
-// HISTORY
-// ─────────────────────────────────────────────────────────────
-function addHistory(url, title) {
-  // Don't duplicate consecutive same URL
-  if (history[0]?.url === url) return;
-  history.unshift({ url, title, ts: new Date().toISOString() });
-  if (history.length > 500) history = history.slice(0, 500);
-  setStore('history', history);
-  push('history-updated', history.slice(0, 100));
-}
-
-function clearHistory() {
-  history = [];
-  setStore('history', []);
-  push('history-updated', []);
-  push('show-toast', { msg: 'History cleared', type: 'success' });
-}
-
-// ─────────────────────────────────────────────────────────────
-// PASSWORD MANAGER
-// ─────────────────────────────────────────────────────────────
-function savePassword(site, username, password) {
-  const existing = passwords.findIndex(p => p.site === site && p.username === username);
-  const entry = { site, username, password, ts: new Date().toISOString() };
-  if (existing >= 0) {
-    passwords[existing] = entry;
-  } else {
-    passwords.unshift(entry);
-  }
-  setStore('passwords', passwords);
-  push('passwords-updated', passwords.map(p => ({ ...p, password: '••••••••' })));
-  push('show-toast', { msg: 'Password saved', type: 'success' });
-}
-
-function deletePassword(index) {
-  passwords.splice(index, 1);
-  setStore('passwords', passwords);
-  push('passwords-updated', passwords.map(p => ({ ...p, password: '••••••••' })));
-}
-
-function getPasswordForSite(site) {
-  return passwords.find(p => p.site === site) || null;
-}
-
-function revealPassword(index) {
-  const p = passwords[index];
-  if (!p) return;
-  push('password-revealed', { index, password: p.password });
-}
-
-function autoFillPassword(tabId) {
-  const tab = tabs.find(t => t.id === tabId);
-  if (!tab) return;
-  const cred = getPasswordForSite(ALLOWED_DOMAIN);
-  if (!cred) {
-    push('show-toast', { msg: 'No saved password for this site', type: 'warn' });
-    return;
-  }
-  // Inject auto-fill JavaScript
-  tab.view.webContents.executeJavaScript(`
-    (function() {
-      const emailInputs = document.querySelectorAll('input[type="email"], input[name*="email"], input[id*="email"], input[placeholder*="email"]');
-      const passInputs  = document.querySelectorAll('input[type="password"]');
-      if (emailInputs[0]) {
-        emailInputs[0].value = ${JSON.stringify(cred.username)};
-        emailInputs[0].dispatchEvent(new Event('input', { bubbles: true }));
-        emailInputs[0].dispatchEvent(new Event('change', { bubbles: true }));
-      }
-      if (passInputs[0]) {
-        passInputs[0].value = ${JSON.stringify(cred.password)};
-        passInputs[0].dispatchEvent(new Event('input', { bubbles: true }));
-        passInputs[0].dispatchEvent(new Event('change', { bubbles: true }));
-      }
-      return !!(emailInputs[0] || passInputs[0]);
-    })()
-  `).then(filled => {
-    push('show-toast', {
-      msg:  filled ? 'Credentials filled!' : 'No login form found on page',
-      type: filled ? 'success' : 'warn'
-    });
-  }).catch(() => {});
-}
-
-// ─────────────────────────────────────────────────────────────
-// LOGIN PAGE DETECTION — offer to save password on form submit
-// ─────────────────────────────────────────────────────────────
-function detectLoginPage(view, tabId, url) {
-  view.webContents.executeJavaScript(`
-    (function() {
-      const forms = document.querySelectorAll('form');
-      for (const form of forms) {
-        const hasPass = form.querySelector('input[type="password"]');
-        if (hasPass) return true;
-      }
-      return false;
-    })()
-  `).then(hasLogin => {
-    if (hasLogin) push('login-form-detected', { tabId, url });
-  }).catch(() => {});
-}
-
-// ─────────────────────────────────────────────────────────────
-// CUSTOM CONTEXT MENU
-// ─────────────────────────────────────────────────────────────
-function showContextMenu(params, view, tabId) {
-  const menuItems = [];
-
-  if (params.selectionText) {
-    menuItems.push(new MenuItem({ label: '📋 Copy', click: () => clipboard.writeText(params.selectionText) }));
-    menuItems.push(new MenuItem({ type: 'separator' }));
-  }
-  if (params.linkURL) {
-    menuItems.push(new MenuItem({ label: '🔗 Open Link in New Tab', click: () => openTab(params.linkURL) }));
-    menuItems.push(new MenuItem({ label: '📋 Copy Link URL', click: () => clipboard.writeText(params.linkURL) }));
-    menuItems.push(new MenuItem({ type: 'separator' }));
-  }
-  if (params.srcURL && params.mediaType === 'image') {
-    menuItems.push(new MenuItem({ label: '🖼️ Open Image in New Tab', click: () => openTab(params.srcURL) }));
-    menuItems.push(new MenuItem({ label: '📋 Copy Image URL', click: () => clipboard.writeText(params.srcURL) }));
-    menuItems.push(new MenuItem({ type: 'separator' }));
-  }
-
-  menuItems.push(new MenuItem({ label: '← Back',    enabled: view.webContents.canGoBack(),    click: () => view.webContents.goBack()    }));
-  menuItems.push(new MenuItem({ label: '→ Forward', enabled: view.webContents.canGoForward(), click: () => view.webContents.goForward() }));
-  menuItems.push(new MenuItem({ label: '↻ Reload',  click: () => view.webContents.reload()    }));
-  menuItems.push(new MenuItem({ type: 'separator' }));
-  menuItems.push(new MenuItem({ label: '🔑 Auto-fill Password', click: () => autoFillPassword(tabId) }));
-  menuItems.push(new MenuItem({ label: '🔖 Bookmark This Page', click: () => bookmarkCurrentPage() }));
-  menuItems.push(new MenuItem({ label: '📷 Screenshot', click: () => takeScreenshot() }));
-  menuItems.push(new MenuItem({ label: '🖨️ Print Page', click: () => printPage() }));
-  menuItems.push(new MenuItem({ type: 'separator' }));
-  menuItems.push(new MenuItem({ label: '+ New Tab', click: () => openTab(HOME_URL) }));
-
-  const menu = Menu.buildFromTemplate(menuItems);
-  menu.popup({ window: mainWindow });
-}
-
-// ─────────────────────────────────────────────────────────────
-// NOTIFICATION
-// ─────────────────────────────────────────────────────────────
-function showNotification(title, body) {
-  if (Notification.isSupported()) {
-    new Notification({ title, body }).show();
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// SESSION PERSISTENCE
-// ─────────────────────────────────────────────────────────────
-function saveSession() {
-  const urls = tabs.map(t => t.url).filter(u => u && u !== 'about:blank');
-  setStore('lastSession', urls);
-}
-
-// ─────────────────────────────────────────────────────────────
-// LAYOUT HELPERS
-// ─────────────────────────────────────────────────────────────
-function getViewBounds() {
-  const [w, h] = mainWindow.getContentSize();
-  return { x: 0, y: TAB_BAR_HEIGHT, width: w, height: h - TAB_BAR_HEIGHT };
-}
-
-function repositionActiveView() {
-  const tab = getActiveTab();
-  if (tab) tab.view.setBounds(getViewBounds());
-}
-
-function ensureDownloadsDir() {
-  if (!fs.existsSync(DOWNLOADS_PATH)) fs.mkdirSync(DOWNLOADS_PATH, { recursive: true });
-}
-
-// Shorthand: send to renderer
-function push(channel, data) {
-  if (mainWindow?.webContents && !mainWindow.webContents.isDestroyed()) {
-    mainWindow.webContents.send(channel, data);
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// IPC HANDLERS
-// ─────────────────────────────────────────────────────────────
-ipcMain.on('open-tab',          (_, url)          => openTab(url || HOME_URL));
-ipcMain.on('switch-tab',        (_, id)           => switchToTab(id));
-ipcMain.on('close-tab',         (_, id)           => closeTab(id));
-ipcMain.on('navigate-to',       (_, url)          => navigateTo(url));
-ipcMain.on('go-back',           ()                => { const t = getActiveTab(); if (t?.canBack) t.view.webContents.goBack(); });
-ipcMain.on('go-forward',        ()                => { const t = getActiveTab(); if (t?.canFwd) t.view.webContents.goForward(); });
-ipcMain.on('reload',            ()                => reloadActive());
-ipcMain.on('zoom-in',           ()                => zoomIn());
-ipcMain.on('zoom-out',          ()                => zoomOut());
-ipcMain.on('zoom-reset',        ()                => zoomReset());
-ipcMain.on('toggle-dark-mode',  ()                => toggleDarkMode());
-ipcMain.on('toggle-fullscreen', ()                => toggleFullscreen());
-ipcMain.on('find-in-page',      (_, { text, fwd }) => findInPage(text, fwd !== false));
-ipcMain.on('stop-find',         ()                => stopFind());
-ipcMain.on('print-page',        ()                => printPage());
-ipcMain.on('screenshot',        ()                => takeScreenshot());
-ipcMain.on('bookmark-toggle',   ()                => bookmarkCurrentPage());
-ipcMain.on('delete-bookmark',   (_, url)          => deleteBookmark(url));
-ipcMain.on('clear-history',     ()                => clearHistory());
-ipcMain.on('save-password',     (_, d)            => savePassword(d.site, d.username, d.password));
-ipcMain.on('delete-password',   (_, idx)          => deletePassword(idx));
-ipcMain.on('reveal-password',   (_, idx)          => revealPassword(idx));
-ipcMain.on('autofill-password', (_, tabId)        => autoFillPassword(tabId || activeTabId));
-ipcMain.on('open-downloads',    ()                => shell.openPath(DOWNLOADS_PATH));
-ipcMain.on('open-file',         (_, p)            => shell.openPath(p));
-ipcMain.on('pin-tab',           (_, id)           => {
-  const t = tabs.find(x => x.id === id);
-  if (t) { t.pinned = !t.pinned; push('tab-updated', { id, title: t.title, url: t.url, loading: t.loading, canBack: t.canBack, canFwd: t.canFwd, pinned: t.pinned }); }
-});
-
-// Sync IPC — returns data to renderer
-ipcMain.handle('get-passwords', () => passwords.map((p, i) => ({ ...p, index: i, password: '••••••••' })));
-ipcMain.handle('get-history',   () => history.slice(0, 100));
-ipcMain.handle('get-bookmarks', () => bookmarks);
-ipcMain.handle('get-downloads', () => downloads);

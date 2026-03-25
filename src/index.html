@@ -2,1260 +2,734 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Smart Store</title>
+<title>Arman Store WMS</title>
 <style>
 /* ═══════════════════════════════════════════════════════════════
-   DESIGN TOKENS
+   DESIGN SYSTEM
 ═══════════════════════════════════════════════════════════════ */
 :root {
-  --bg-deepest:   #0F172A;
-  --bg-deep:      #1E293B;
-  --bg-panel:     #1A2744;
-  --bg-card:      #243050;
-  --bg-hover:     #2D3D60;
-  --accent:       #3B82F6;
-  --accent-glow:  #60A5FA;
-  --accent-dim:   #1D4ED8;
-  --green:        #10B981;
-  --yellow:       #F59E0B;
-  --red:          #EF4444;
-  --text-primary: #F1F5F9;
-  --text-secondary:#94A3B8;
-  --text-muted:   #475569;
-  --border:       rgba(59,130,246,0.2);
-  --border-bright:rgba(59,130,246,0.5);
-  --radius-sm:    6px;
-  --radius:       10px;
-  --radius-lg:    16px;
-  --tab-bar-h:    88px;
-  --font:         'Segoe UI', system-ui, -apple-system, sans-serif;
-  --shadow:       0 4px 20px rgba(0,0,0,0.4);
-  --shadow-lg:    0 8px 40px rgba(0,0,0,0.6);
-  --transition:   0.18s cubic-bezier(0.4,0,0.2,1);
+  --bar-h:        60px;   /* MUST match TABBAR_HEIGHT in main.js */
+  --c-bg:         #0D1554;
+  --c-nav:        #111D6B;
+  --c-tab:        #1A277A;
+  --c-tab-hover:  #223194;
+  --c-tab-active: #1358AD;
+  --c-accent:     #3B9EF5;
+  --c-accent-dim: rgba(59,158,245,.18);
+  --c-border:     rgba(255,255,255,.10);
+  --c-text:       #CBD5F8;
+  --c-text-hi:    #FFFFFF;
+  --c-text-dim:   #5E70B5;
+  --c-success:    #4CAF82;
+  --c-warn:       #F5A623;
+  --c-danger:     #E05252;
+  --radius:       7px;
+  --shadow:       0 2px 16px rgba(0,0,0,.45);
+  --trans:        .15s ease;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RESET & BASE
-═══════════════════════════════════════════════════════════════ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
 
 html, body {
-  height: var(--tab-bar-h);
+  height: var(--bar-h);
   overflow: hidden;
-  font-family: var(--font);
-  background: var(--bg-deepest);
-  color: var(--text-primary);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  background: var(--c-bg);
+  color: var(--c-text);
   user-select: none;
   -webkit-app-region: drag;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   SHELL — the entire visible UI (88px tall)
-═══════════════════════════════════════════════════════════════ */
-#shell {
-  display: flex;
-  flex-direction: column;
-  height: var(--tab-bar-h);
-  background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%);
-  border-bottom: 1px solid var(--border-bright);
-  -webkit-app-region: no-drag;
-  position: relative;
+button {
+  border: none; background: transparent; color: inherit;
+  cursor: pointer; font: inherit;
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 5px;
+  transition: background var(--trans), color var(--trans), opacity var(--trans);
 }
+button:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
 
-/* ── ROW 1: Tab strip ─────────────────────────────────────────*/
-#tab-strip {
+/* ═══════════════════════════════════════════════════════════════
+   TOP BAR  (the only visible thing — shell is 60 px tall)
+═══════════════════════════════════════════════════════════════ */
+#bar {
   display: flex;
   align-items: center;
-  height: 42px;
-  padding: 4px 6px 0;
-  gap: 3px;
-  background: var(--bg-deepest);
+  height: var(--bar-h);
+  padding: 0 6px;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+  background: var(--c-bg);
+}
+
+/* ── Section separator ── */
+.sep {
+  width: 1px; height: 26px;
+  background: var(--c-border);
   flex-shrink: 0;
 }
 
-#tabs-scroll {
-  display: flex;
-  align-items: flex-end;
-  flex: 1;
-  overflow-x: auto;
-  overflow-y: hidden;
+/* ── Icon nav buttons (back / fwd / reload / home) ── */
+.nbtn {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  color: var(--c-text-dim);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.nbtn:hover:not(:disabled) { background: rgba(255,255,255,.10); color: var(--c-text-hi); }
+.nbtn:disabled { opacity: .28; cursor: default; }
+
+/* ── Scrollable tab strip ── */
+#tab-scroll {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center;
+  overflow-x: auto; overflow-y: hidden;
   gap: 3px;
   height: 100%;
-  padding-bottom: 0;
+  padding: 10px 0;
   scrollbar-width: none;
 }
-#tabs-scroll::-webkit-scrollbar { display: none; }
+#tab-scroll::-webkit-scrollbar { display: none; }
 
 /* ── Single tab ── */
 .tab {
   display: flex; align-items: center;
-  min-width: 140px; max-width: 220px;
-  height: 34px;
-  background: var(--bg-card);
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  min-width: 148px; max-width: 220px;
+  height: 38px;
+  background: var(--c-tab);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
   padding: 0 8px 0 10px;
+  gap: 7px;
   cursor: pointer;
   flex-shrink: 0;
-  gap: 6px;
-  border: 1px solid transparent;
-  border-bottom: none;
-  transition: background var(--transition), border-color var(--transition);
   position: relative;
+  transition: background var(--trans), border-color var(--trans);
 }
-.tab:hover { background: var(--bg-hover); }
+.tab:hover { background: var(--c-tab-hover); }
 .tab.active {
-  background: var(--bg-deep);
-  border-color: var(--border-bright);
-  border-bottom: 1px solid var(--bg-deep);
+  background: var(--c-tab-active);
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 1px rgba(59,158,245,.25);
 }
-.tab.pinned { min-width: 42px; max-width: 42px; justify-content: center; }
-.tab.pinned .tab-title, .tab.pinned .tab-close { display: none; }
-
-.tab-favicon { width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0; opacity: 0.85; }
-.tab-favicon-placeholder {
-  width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0;
-  background: var(--accent-dim); opacity: 0.5;
+.tab.active::after {
+  content:'';
+  position: absolute;
+  bottom: -1px; left: 8px; right: 8px;
+  height: 2px;
+  background: var(--c-accent);
+  border-radius: 2px 2px 0 0;
 }
 
-.tab-spinner {
-  width: 12px; height: 12px; flex-shrink: 0;
-  border: 2px solid rgba(255,255,255,0.15);
-  border-top-color: var(--accent-glow);
+/* Spinner (shown while loading) */
+.tab-spin {
+  width: 13px; height: 13px;
+  border: 2px solid rgba(255,255,255,.15);
+  border-top-color: var(--c-accent);
   border-radius: 50%;
-  animation: spin 0.6s linear infinite;
+  flex-shrink: 0;
   display: none;
+  animation: spin .65s linear infinite;
 }
-.tab.loading .tab-spinner      { display: block; }
-.tab.loading .tab-favicon,
-.tab.loading .tab-favicon-placeholder { display: none; }
+.tab.loading .tab-spin { display: block; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.tab-title {
-  flex: 1; font-size: 12px; color: var(--text-secondary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+/* Favicon */
+.tab-fav {
+  width: 14px; height: 14px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  object-fit: contain;
 }
-.tab.active .tab-title { color: var(--text-primary); }
-
-.tab-close {
-  width: 18px; height: 18px; border-radius: 50%; border: none;
-  background: transparent; color: var(--text-muted);
-  font-size: 13px; cursor: pointer; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  transition: background var(--transition), color var(--transition);
-  padding: 0;
-}
-.tab-close:hover { background: rgba(239,68,68,0.25); color: #EF4444; }
-
-/* ── Tab strip controls ── */
-.tab-strip-btn {
-  width: 32px; height: 32px; border-radius: 50%; border: none;
-  background: transparent; color: var(--text-secondary);
-  font-size: 18px; cursor: pointer; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  transition: background var(--transition), color var(--transition);
-}
-.tab-strip-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
-.tab-strip-btn.active-btn { color: var(--accent-glow); }
-
-/* ── ROW 2: Nav bar ─────────────────────────────────────────*/
-#nav-bar {
-  display: flex; align-items: center;
-  height: 46px;
-  padding: 0 10px;
-  gap: 6px;
-  background: var(--bg-deep);
-  border-top: 1px solid var(--border);
+.tab-fav-ph {
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  background: var(--c-text-dim);
   flex-shrink: 0;
 }
+.tab.loading .tab-fav,
+.tab.loading .tab-fav-ph { display: none; }
 
-/* Navigation buttons */
-.nav-btn {
-  width: 34px; height: 34px; border-radius: 50%; border: none;
-  background: transparent; color: var(--text-secondary);
-  font-size: 16px; cursor: pointer; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  transition: background var(--transition), color var(--transition);
-  position: relative;
+/* Title */
+.tab-ttl {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: var(--c-text);
+  opacity: .85;
 }
-.nav-btn:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
-.nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.tab.active .tab-ttl { color: var(--c-text-hi); font-weight: 500; opacity: 1; }
 
-/* URL bar */
-#url-bar-wrap {
-  flex: 1; position: relative;
-  display: flex; align-items: center;
-}
-#url-bar {
-  width: 100%; height: 32px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  color: var(--text-primary);
-  font-size: 13px;
-  padding: 0 36px 0 14px;
-  outline: none;
-  transition: border-color var(--transition), box-shadow var(--transition);
-  cursor: text;
-}
-#url-bar:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
-  background: var(--bg-card);
-}
-#url-bar-go {
-  position: absolute; right: 8px;
-  width: 22px; height: 22px; border-radius: 50%;
-  background: var(--accent); border: none; color: white;
-  font-size: 12px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0; pointer-events: none;
-  transition: opacity var(--transition);
-}
-#url-bar:focus + #url-bar-go,
-#url-bar-go:hover { opacity: 1; pointer-events: all; }
-
-/* Zoom badge */
-#zoom-badge {
-  font-size: 11px; color: var(--text-secondary);
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 2px 8px;
-  cursor: pointer;
+/* Close × */
+.tab-x {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  font-size: 14px;
+  color: var(--c-text-dim);
   flex-shrink: 0;
-  min-width: 42px;
-  text-align: center;
-  transition: background var(--transition);
+  opacity: 0;
+  transition: background var(--trans), color var(--trans), opacity var(--trans);
 }
-#zoom-badge:hover { background: var(--bg-hover); }
+.tab:hover .tab-x,
+.tab.active .tab-x { opacity: 1; }
+.tab-x:hover { background: rgba(224,82,82,.22); color: var(--c-danger); }
 
-/* Separator */
-.sep { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; }
+/* ── New-tab button ── */
+#btn-new {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  font-size: 22px;
+  color: var(--c-text-dim);
+  flex-shrink: 0;
+}
+#btn-new:hover { background: rgba(255,255,255,.10); color: var(--c-text-hi); }
 
-/* ── Feature icon buttons (right side of nav bar) ── */
-.feat-btn {
-  width: 32px; height: 32px; border-radius: var(--radius-sm);
-  border: none; background: transparent; color: var(--text-secondary);
-  font-size: 17px; cursor: pointer; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  transition: background var(--transition), color var(--transition);
-  position: relative;
+/* ── Action buttons (Print / PDF / Downloads) ── */
+.abtn {
+  height: 32px;
+  padding: 0 11px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--c-text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+  gap: 5px;
 }
-.feat-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
-.feat-btn.on { color: var(--accent-glow); }
-.feat-btn .badge {
-  position: absolute; top: 3px; right: 3px;
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--green);
-  display: none;
+.abtn:hover { background: rgba(255,255,255,.09); color: var(--c-text-hi); }
+.abtn.hi { color: var(--c-accent); }
+.abtn.hi:hover { background: var(--c-accent-dim); }
+
+/* ── Zoom control ── */
+#zoom-grp {
+  display: flex; align-items: center; gap: 2px;
+  flex-shrink: 0;
 }
-.feat-btn .badge.show { display: block; }
+#zoom-lbl {
+  min-width: 40px; text-align: center;
+  font-size: 11px; font-variant-numeric: tabular-nums;
+  color: var(--c-text-dim);
+}
+
+/* ── Find icon ── */
+#btn-find {
+  width: 34px; height: 34px; border-radius: 50%; font-size: 15px;
+  color: var(--c-text-dim); flex-shrink: 0;
+}
+#btn-find:hover { background: rgba(255,255,255,.10); color: var(--c-text-hi); }
 
 /* ═══════════════════════════════════════════════════════════════
-   FIND BAR (slides in below nav-bar)
+   FIND BAR
 ═══════════════════════════════════════════════════════════════ */
 #find-bar {
-  display: none;
   position: fixed;
-  top: var(--tab-bar-h);
-  right: 12px;
-  background: var(--bg-deep);
-  border: 1px solid var(--border-bright);
+  top: var(--bar-h);
+  right: 14px;
+  background: #131F78;
+  border: 1px solid var(--c-accent);
   border-top: none;
-  border-radius: 0 0 var(--radius) var(--radius);
-  padding: 8px 12px;
-  gap: 8px;
-  align-items: center;
-  z-index: 200;
+  border-radius: 0 0 10px 10px;
+  padding: 7px 10px;
+  display: flex; align-items: center; gap: 6px;
+  z-index: 9000;
   box-shadow: var(--shadow);
+  transform: translateY(-110%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform .22s ease, opacity .22s ease;
 }
-#find-bar.open { display: flex; }
-#find-input {
-  width: 240px; height: 28px;
-  background: var(--bg-panel); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); color: var(--text-primary);
-  font-size: 13px; padding: 0 10px; outline: none;
+#find-bar.open { transform: translateY(0); opacity: 1; pointer-events: all; }
+
+#find-inp {
+  width: 210px; height: 30px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 6px;
+  background: rgba(255,255,255,.07);
+  color: #fff;
+  padding: 0 10px;
+  font-size: 12px;
+  outline: none;
+  transition: border-color var(--trans);
 }
-#find-input:focus { border-color: var(--accent); }
-#find-count { font-size: 12px; color: var(--text-secondary); min-width: 60px; }
+#find-inp:focus { border-color: var(--c-accent); }
+
+#find-count { font-size: 11px; color: var(--c-text-dim); min-width: 50px; }
+
 .find-btn {
-  width: 26px; height: 26px; border-radius: 50%; border: none;
-  background: var(--bg-panel); color: var(--text-secondary);
-  font-size: 13px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: background var(--transition);
+  width: 28px; height: 28px; border-radius: 50%; font-size: 14px;
+  color: var(--c-text-dim);
 }
-.find-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.find-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
 
 /* ═══════════════════════════════════════════════════════════════
-   PANELS (slide in from right)
+   DOWNLOAD TRAY  (bottom-right slide-up cards)
 ═══════════════════════════════════════════════════════════════ */
-.panel {
+#dl-tray {
   position: fixed;
-  top: 0; right: -380px; bottom: 0;
-  width: 360px;
-  background: var(--bg-deep);
-  border-left: 1px solid var(--border-bright);
-  z-index: 500;
-  display: flex; flex-direction: column;
-  transition: right 0.28s cubic-bezier(0.4,0,0.2,1);
-  box-shadow: var(--shadow-lg);
-}
-.panel.open { right: 0; }
-
-.panel-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 18px 12px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.panel-title {
-  font-size: 15px; font-weight: 600; color: var(--text-primary);
-  display: flex; align-items: center; gap: 8px;
-}
-.panel-close {
-  width: 28px; height: 28px; border-radius: 50%; border: none;
-  background: transparent; color: var(--text-secondary);
-  font-size: 18px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: background var(--transition);
-}
-.panel-close:hover { background: var(--bg-hover); color: var(--text-primary); }
-
-.panel-body {
-  flex: 1; overflow-y: auto; padding: 12px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--bg-hover) transparent;
-}
-.panel-body::-webkit-scrollbar { width: 5px; }
-.panel-body::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 10px; }
-
-.panel-actions {
-  padding: 10px 12px;
-  border-top: 1px solid var(--border);
-  display: flex; gap: 8px; flex-shrink: 0;
-}
-
-/* ── Panel item cards ── */
-.p-item {
-  display: flex; align-items: center;
-  background: var(--bg-card);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-  margin-bottom: 6px;
-  gap: 10px;
-  transition: background var(--transition);
-  cursor: pointer;
-  border: 1px solid transparent;
-}
-.p-item:hover { background: var(--bg-hover); border-color: var(--border); }
-
-.p-item-icon {
-  width: 34px; height: 34px; border-radius: var(--radius-sm);
-  background: var(--bg-panel);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; flex-shrink: 0;
-}
-.p-item-body { flex: 1; min-width: 0; }
-.p-item-title { font-size: 13px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.p-item-sub   { font-size: 11px; color: var(--text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.p-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
-.p-action-btn {
-  width: 26px; height: 26px; border-radius: 50%; border: none;
-  background: transparent; color: var(--text-muted);
-  font-size: 13px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: background var(--transition), color var(--transition);
-}
-.p-action-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
-.p-action-btn.danger:hover { background: rgba(239,68,68,0.2); color: var(--red); }
-
-/* ═══════════════════════════════════════════════════════════════
-   PASSWORD PANEL EXTRAS
-═══════════════════════════════════════════════════════════════ */
-.pw-form {
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px;
-  margin-bottom: 14px;
-}
-.pw-form-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
-.pw-input {
-  width: 100%; height: 34px;
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); color: var(--text-primary);
-  font-size: 13px; padding: 0 10px; outline: none;
-  margin-bottom: 8px;
-  transition: border-color var(--transition);
-}
-.pw-input:focus { border-color: var(--accent); }
-.pw-masked { font-family: monospace; letter-spacing: 2px; color: var(--text-secondary); }
-
-/* ═══════════════════════════════════════════════════════════════
-   DOWNLOAD PANEL
-═══════════════════════════════════════════════════════════════ */
-.dl-item { }
-.dl-progress-bar {
-  height: 3px; background: var(--bg-panel); border-radius: 2px;
-  margin-top: 6px; overflow: hidden;
-}
-.dl-progress-fill {
-  height: 100%; background: var(--accent);
-  border-radius: 2px; transition: width 0.2s;
-}
-.dl-status {
-  font-size: 11px; margin-top: 3px;
-  color: var(--text-secondary);
-}
-.dl-status.done { color: var(--green); }
-.dl-status.failed { color: var(--red); }
-
-/* ═══════════════════════════════════════════════════════════════
-   SAVE PASSWORD PROMPT MODAL
-═══════════════════════════════════════════════════════════════ */
-#save-pw-modal {
-  display: none;
-  position: fixed;
-  bottom: 20px; left: 50%; transform: translateX(-50%);
-  z-index: 800;
-  background: var(--bg-deep);
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-lg);
-  padding: 16px 20px;
-  width: 380px;
-  box-shadow: var(--shadow-lg);
-  animation: slideUp 0.25s ease;
-}
-#save-pw-modal.show { display: block; }
-@keyframes slideUp { from { transform: translateX(-50%) translateY(20px); opacity:0; } to { transform: translateX(-50%) translateY(0); opacity:1; } }
-
-.modal-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
-.modal-row { display: flex; gap: 8px; margin-bottom: 8px; }
-.modal-row .pw-input { margin-bottom: 0; }
-.modal-btns { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
-
-/* ═══════════════════════════════════════════════════════════════
-   PANEL OVERLAY
-═══════════════════════════════════════════════════════════════ */
-#panel-overlay {
-  display: none;
-  position: fixed; inset: 0; z-index: 400;
-  background: rgba(0,0,0,0.4);
-}
-#panel-overlay.show { display: block; }
-
-/* ═══════════════════════════════════════════════════════════════
-   BUTTONS
-═══════════════════════════════════════════════════════════════ */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  gap: 6px; height: 32px; padding: 0 14px;
-  border-radius: var(--radius-sm); border: none;
-  font-size: 13px; cursor: pointer;
-  transition: background var(--transition), transform 0.1s;
-  font-family: var(--font);
-}
-.btn:active { transform: scale(0.97); }
-.btn-primary { background: var(--accent); color: white; }
-.btn-primary:hover { background: var(--accent-glow); }
-.btn-secondary { background: var(--bg-panel); color: var(--text-secondary); border: 1px solid var(--border); }
-.btn-secondary:hover { background: var(--bg-hover); color: var(--text-primary); }
-.btn-danger { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
-.btn-danger:hover { background: rgba(239,68,68,0.25); }
-.btn-icon { padding: 0; width: 32px; }
-.btn-sm { height: 26px; padding: 0 10px; font-size: 12px; }
-
-/* ═══════════════════════════════════════════════════════════════
-   TOAST NOTIFICATIONS
-═══════════════════════════════════════════════════════════════ */
-#toast-stack {
-  position: fixed;
-  bottom: 20px; right: 20px;
+  bottom: 14px; right: 14px;
+  width: 310px;
+  display: flex; flex-direction: column; gap: 7px;
   z-index: 9999;
-  display: flex; flex-direction: column-reverse; gap: 8px;
   pointer-events: none;
 }
-.toast {
-  display: flex; align-items: center; gap: 10px;
-  background: var(--bg-deep);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 16px;
-  font-size: 13px; color: var(--text-primary);
-  box-shadow: var(--shadow);
+
+.dl-card {
+  background: #131F78;
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  padding: 11px 13px 10px;
   pointer-events: all;
-  animation: toastIn 0.25s ease;
-  min-width: 220px; max-width: 360px;
+  animation: slideUp .22s ease;
+  box-shadow: var(--shadow);
 }
-@keyframes toastIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: none; } }
-.toast.fade-out { animation: toastOut 0.3s ease forwards; }
-@keyframes toastOut { to { opacity:0; transform: translateX(20px); } }
-.toast.success { border-color: rgba(16,185,129,0.5); }
-.toast.error   { border-color: rgba(239,68,68,0.5); }
-.toast.warn    { border-color: rgba(245,158,11,0.5); }
-.toast.info    { border-color: var(--border-bright); }
-.toast-icon    { font-size: 16px; flex-shrink: 0; }
+@keyframes slideUp { from { transform: translateY(18px); opacity: 0; } }
+
+.dl-row1 { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.dl-ico  { font-size: 20px; flex-shrink: 0; }
+.dl-name {
+  flex: 1; font-size: 12px; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--c-text-hi);
+}
+.dl-dismiss {
+  font-size: 15px; padding: 2px 4px;
+  color: var(--c-text-dim); border-radius: 4px;
+}
+.dl-dismiss:hover { color: var(--c-danger); background: rgba(224,82,82,.15); }
+
+.dl-track { height: 5px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; }
+.dl-bar   { height: 100%; background: var(--c-accent); border-radius: 3px; width: 0; transition: width .3s; }
+.dl-bar.indet {
+  width: 35%;
+  animation: indet 1.1s ease-in-out infinite alternate;
+}
+@keyframes indet { to { margin-left: 65%; } }
+
+.dl-stat { font-size: 11px; color: var(--c-text-dim); margin-top: 5px; }
+
+.dl-actions { display: none; gap: 6px; margin-top: 8px; }
+.dl-card.done .dl-actions,
+.dl-card.fail .dl-actions { display: flex; }
+
+.dl-act-btn {
+  flex: 1; height: 28px; border-radius: 6px;
+  font-size: 11px; font-weight: 500;
+  background: rgba(255,255,255,.07);
+  color: var(--c-text);
+  transition: background var(--trans);
+}
+.dl-act-btn:hover { background: rgba(255,255,255,.14); }
+.dl-act-btn.primary { background: var(--c-accent-dim); color: var(--c-accent); }
+.dl-act-btn.primary:hover { background: rgba(59,158,245,.28); }
+
+.dl-card.done .dl-bar { background: var(--c-success); width: 100% !important; }
+.dl-card.fail .dl-bar { background: var(--c-danger);  width: 100% !important; }
 
 /* ═══════════════════════════════════════════════════════════════
-   EMPTY STATE
+   TOAST
 ═══════════════════════════════════════════════════════════════ */
-.empty-state {
-  text-align: center; padding: 40px 20px; color: var(--text-muted);
+#toast {
+  position: fixed;
+  bottom: 16px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(5,10,40,.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--c-border);
+  color: var(--c-text-hi);
+  padding: 7px 18px;
+  border-radius: 20px;
+  font-size: 12px;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 9999;
+  transition: opacity .2s, transform .2s;
+  box-shadow: var(--shadow);
 }
-.empty-state .ei { font-size: 42px; margin-bottom: 12px; opacity: 0.5; }
-.empty-state p { font-size: 13px; }
-
-/* ═══════════════════════════════════════════════════════════════
-   SECTION HEADER inside panels
-═══════════════════════════════════════════════════════════════ */
-.section-label {
-  font-size: 11px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 0.8px; color: var(--text-muted);
-  padding: 8px 4px 6px; margin-bottom: 2px;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   SCROLLBARS
-═══════════════════════════════════════════════════════════════ */
-* { scrollbar-width: thin; scrollbar-color: var(--bg-hover) transparent; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.warn  { border-color: var(--c-warn);    color: var(--c-warn); }
+#toast.info  { border-color: var(--c-accent);  color: var(--c-accent); }
+#toast.error { border-color: var(--c-danger);  color: var(--c-danger); }
 </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════════════
-     SHELL
-═══════════════════════════════════════════════════════════════ -->
-<div id="shell">
+<!-- ═══════════ TOP BAR ═══════════ -->
+<div id="bar">
 
-  <!-- ── ROW 1: Tab Strip ── -->
-  <div id="tab-strip">
-    <div id="tabs-scroll"><!-- tabs injected here --></div>
-    <!-- New Tab Button -->
-    <button class="tab-strip-btn" id="btn-new-tab" title="New Tab (Ctrl+T)" onclick="newTab()">+</button>
+  <!-- Back / Forward / Reload / Home -->
+  <button class="nbtn" id="btn-back"   title="Back  Alt+←"    onclick="WMS.back()"    disabled>&#8592;</button>
+  <button class="nbtn" id="btn-fwd"    title="Forward  Alt+→"  onclick="WMS.forward()" disabled>&#8594;</button>
+  <button class="nbtn" id="btn-reload" title="Reload  Ctrl+R"  onclick="WMS.reload()">&#8635;</button>
+  <button class="nbtn" id="btn-home"   title="Home"            onclick="WMS.home()">&#8962;</button>
+
+  <div class="sep"></div>
+
+  <!-- Tab strip -->
+  <div id="tab-scroll"></div>
+
+  <!-- New tab -->
+  <button id="btn-new" title="New Tab  Ctrl+T" onclick="WMS.openTab(null)">+</button>
+
+  <div class="sep"></div>
+
+  <!-- Print -->
+  <button class="abtn hi" title="Print Page  Ctrl+P" onclick="WMS.print()">
+    🖨 <span>Print</span>
+  </button>
+
+  <!-- Save PDF -->
+  <button class="abtn" title="Save as PDF" onclick="WMS.savePDF()">
+    📄 <span>Save PDF</span>
+  </button>
+
+  <!-- Downloads folder -->
+  <button class="abtn" title="Open Downloads Folder" onclick="WMS.openDownloads()">
+    📂 <span>Downloads</span>
+  </button>
+
+  <div class="sep"></div>
+
+  <!-- Zoom -->
+  <div id="zoom-grp">
+    <button class="nbtn" title="Zoom Out  Ctrl+-" onclick="WMS.zoomOut()" style="font-size:18px;font-weight:700;">−</button>
+    <span id="zoom-lbl">100%</span>
+    <button class="nbtn" title="Zoom In  Ctrl++" onclick="WMS.zoomIn()"  style="font-size:18px;font-weight:700;">+</button>
+    <button class="abtn" title="Reset Zoom  Ctrl+0" onclick="WMS.zoomReset()" style="font-size:10px;padding:0 7px;height:28px;">1:1</button>
   </div>
 
-  <!-- ── ROW 2: Navigation Bar ── -->
-  <div id="nav-bar">
-    <!-- Back / Forward / Reload -->
-    <button class="nav-btn" id="btn-back"    title="Back (Alt+Left)"    onclick="api.goBack()"    disabled>&#8592;</button>
-    <button class="nav-btn" id="btn-forward" title="Forward (Alt+Right)" onclick="api.goForward()" disabled>&#8594;</button>
-    <button class="nav-btn" id="btn-reload"  title="Reload (F5)"        onclick="api.reload()">&#8635;</button>
+  <div class="sep"></div>
 
-    <!-- URL Bar -->
-    <div id="url-bar-wrap">
-      <input id="url-bar" type="text" placeholder="https://arman.ahrtechdiv.com" autocomplete="off" spellcheck="false"/>
-      <button id="url-bar-go" title="Go" onclick="navigateToUrl()">&#10003;</button>
-    </div>
+  <!-- Find -->
+  <button id="btn-find" title="Find in Page  Ctrl+F" onclick="toggleFind()">🔍</button>
 
-    <!-- Zoom -->
-    <div id="zoom-badge" title="Zoom — click to reset" onclick="api.zoomReset()">100%</div>
-
-    <div class="sep"></div>
-
-    <!-- Feature buttons -->
-    <button class="feat-btn" id="btn-bookmark" title="Bookmark (Ctrl+D)" onclick="api.bookmarkToggle()">🔖</button>
-    <button class="feat-btn" id="btn-find"     title="Find in Page (Ctrl+F)" onclick="toggleFind()">🔍</button>
-    <button class="feat-btn" id="btn-dark"     title="Dark Mode" onclick="api.toggleDarkMode()">🌙</button>
-
-    <div class="sep"></div>
-
-    <button class="feat-btn" id="btn-passwords" title="Password Manager" onclick="openPanel('passwords')">
-      🔑<span class="badge" id="pw-badge"></span>
-    </button>
-    <button class="feat-btn" id="btn-bookmarks-panel" title="Bookmarks" onclick="openPanel('bookmarks')">
-      ⭐<span class="badge" id="bm-badge"></span>
-    </button>
-    <button class="feat-btn" id="btn-history" title="History" onclick="openPanel('history')">🕐</button>
-    <button class="feat-btn" id="btn-downloads" title="Downloads" onclick="openPanel('downloads')">⬇️<span class="badge" id="dl-badge"></span>
-    </button>
-
-    <div class="sep"></div>
-
-    <button class="feat-btn" id="btn-screenshot" title="Screenshot (Ctrl+Shift+S)" onclick="api.screenshot()">📷</button>
-    <button class="feat-btn" id="btn-print"      title="Print (Ctrl+P)"            onclick="api.printPage()">🖨️</button>
-    <button class="feat-btn" id="btn-fullscreen" title="Fullscreen (F11)"           onclick="api.toggleFullscreen()">⛶</button>
-  </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     FIND BAR
-═══════════════════════════════════════════════════════════════ -->
+<!-- ═══════════ FIND BAR ═══════════ -->
 <div id="find-bar">
-  <input id="find-input" type="text" placeholder="Find in page…" oninput="doFind()" onkeydown="findKey(event)"/>
-  <span id="find-count" style="color:var(--text-muted)">0 / 0</span>
-  <button class="find-btn" title="Previous" onclick="api.findInPage(document.getElementById('find-input').value, false)">↑</button>
-  <button class="find-btn" title="Next"     onclick="api.findInPage(document.getElementById('find-input').value, true)">↓</button>
-  <button class="find-btn" title="Close"    onclick="closeFind()">✕</button>
+  <span style="color:var(--c-text-dim);font-size:14px">🔍</span>
+  <input id="find-inp" type="text" placeholder="Find in page…"
+         oninput="onFindInput()" onkeydown="onFindKey(event)"/>
+  <span id="find-count"></span>
+  <button class="find-btn" title="Previous  Shift+Enter" onclick="WMS.findPrev(document.getElementById('find-inp').value)">&#8593;</button>
+  <button class="find-btn" title="Next  Enter"           onclick="WMS.findNext(document.getElementById('find-inp').value)">&#8595;</button>
+  <button class="find-btn" title="Close  Esc"            onclick="closeFind()" style="color:var(--c-danger)">✕</button>
 </div>
+
+<!-- ═══════════ DOWNLOAD TRAY ═══════════ -->
+<div id="dl-tray"></div>
+
+<!-- ═══════════ TOAST ═══════════ -->
+<div id="toast"></div>
 
 <!-- ═══════════════════════════════════════════════════════════
-     PANELS OVERLAY
-═══════════════════════════════════════════════════════════════ -->
-<div id="panel-overlay" onclick="closeAllPanels()"></div>
-
-<!-- ── PASSWORDS PANEL ── -->
-<div class="panel" id="panel-passwords">
-  <div class="panel-header">
-    <span class="panel-title">🔑 Password Manager</span>
-    <button class="panel-close" onclick="closePanel('passwords')">×</button>
-  </div>
-  <div class="panel-body" id="pw-body">
-    <!-- Save New Password form -->
-    <div class="pw-form">
-      <div class="pw-form-title">💾 Save New Password</div>
-      <input class="pw-input" id="pw-site"     type="text"     placeholder="Site (e.g. arman.ahrtechdiv.com)" />
-      <input class="pw-input" id="pw-username" type="email"    placeholder="Email / Username" />
-      <input class="pw-input" id="pw-password" type="password" placeholder="Password" />
-      <div style="display:flex;gap:8px;margin-top:4px;">
-        <button class="btn btn-primary" style="flex:1" onclick="saveNewPassword()">💾 Save Password</button>
-        <button class="btn btn-secondary" onclick="api.autofillPassword()" title="Auto-fill saved credentials">🔑 Auto-fill</button>
-      </div>
-    </div>
-    <!-- Saved passwords list -->
-    <div class="section-label">Saved Credentials</div>
-    <div id="pw-list"></div>
-  </div>
-</div>
-
-<!-- ── BOOKMARKS PANEL ── -->
-<div class="panel" id="panel-bookmarks">
-  <div class="panel-header">
-    <span class="panel-title">⭐ Bookmarks</span>
-    <button class="panel-close" onclick="closePanel('bookmarks')">×</button>
-  </div>
-  <div class="panel-body">
-    <div id="bm-list"></div>
-  </div>
-</div>
-
-<!-- ── HISTORY PANEL ── -->
-<div class="panel" id="panel-history">
-  <div class="panel-header">
-    <span class="panel-title">🕐 History</span>
-    <button class="panel-close" onclick="closePanel('history')">×</button>
-  </div>
-  <div class="panel-body">
-    <div id="hist-list"></div>
-  </div>
-  <div class="panel-actions">
-    <button class="btn btn-danger" style="flex:1" onclick="if(confirm('Clear all history?')) api.clearHistory()">🗑️ Clear History</button>
-  </div>
-</div>
-
-<!-- ── DOWNLOADS PANEL ── -->
-<div class="panel" id="panel-downloads">
-  <div class="panel-header">
-    <span class="panel-title">⬇️ Downloads</span>
-    <button class="panel-close" onclick="closePanel('downloads')">×</button>
-  </div>
-  <div class="panel-body">
-    <div id="dl-list"></div>
-  </div>
-  <div class="panel-actions">
-    <button class="btn btn-secondary" style="flex:1" onclick="api.openDownloads()">📁 Open Downloads Folder</button>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════
-     SAVE PASSWORD PROMPT MODAL (auto-shows on login page)
-═══════════════════════════════════════════════════════════════ -->
-<div id="save-pw-modal">
-  <div class="modal-title">🔑 Save Password for this site?</div>
-  <div class="modal-row">
-    <input class="pw-input" id="modal-user" type="email"    placeholder="Email / Username" style="flex:1;margin-bottom:0"/>
-  </div>
-  <div class="modal-row">
-    <input class="pw-input" id="modal-pass" type="password" placeholder="Password" style="flex:1;margin-bottom:0"/>
-  </div>
-  <div class="modal-btns">
-    <button class="btn btn-secondary btn-sm" onclick="dismissSavePw()">Not now</button>
-    <button class="btn btn-primary  btn-sm" onclick="confirmSavePw()">💾 Save</button>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════
-     TOAST STACK
-═══════════════════════════════════════════════════════════════ -->
-<div id="toast-stack"></div>
-
-<!-- ═══════════════════════════════════════════════════════════
-     JAVASCRIPT
-═══════════════════════════════════════════════════════════════ -->
+     RENDERER SCRIPT
+     All communication with Electron goes through window.WMS
+     (exposed by preload.js via contextBridge).
+════════════════════════════════════════════════════════════ -->
 <script>
 'use strict';
-// ─────────────────────────────────────────────────────────────
-// STATE
-// ─────────────────────────────────────────────────────────────
-const tabsMap     = new Map();   // id → { id, title, url, loading, canBack, canFwd, pinned, favicon }
-let   activeId    = null;
-let   darkMode    = false;
-let   currentZoom = 1.0;
-let   savePwTabId = null;
-const downloads   = new Map();   // id → { ...dlEntry, percent }
 
-// ─────────────────────────────────────────────────────────────
-// INIT
-// ─────────────────────────────────────────────────────────────
-api.on('init-state', ({ bookmarks, passwords, history, darkMode: dm }) => {
-  darkMode = dm;
-  document.getElementById('btn-dark').classList.toggle('on', dm);
-  renderBookmarks(bookmarks);
-  renderHistory(history);
-  renderPasswords(passwords);
+/* ── State ────────────────────────────────────────────────── */
+/** @type {Map<number,{id,title,url,loading,favicon,canBack,canFwd}>} */
+const tabMap  = new Map();
+let   activeId = null;
+/** @type {Map<string,{el:HTMLElement,savePath:string}>} */
+const dlCards = new Map();
+
+/* ── DOM shortcuts ──────────────────────────────────────── */
+const $      = id => document.getElementById(id);
+const strip  = $('tab-scroll');
+const zoomLbl= $('zoom-lbl');
+
+/* ════════════════════════════════════════════════════════════
+   IPC LISTENERS  (main → renderer)
+════════════════════════════════════════════════════════════ */
+
+WMS.on.tabOpened(({ id, title, url }) => {
+  tabMap.set(id, { id, title, url, loading: true, favicon: null, canBack: false, canFwd: false });
+  activeId = id;
+  render();
 });
 
-// ─────────────────────────────────────────────────────────────
-// TAB EVENTS
-// ─────────────────────────────────────────────────────────────
-api.on('tab-opened', d => {
-  tabsMap.set(d.id, { ...d, favicon: null });
-  activeId = d.id;
-  renderTabs();
-  updateNavButtons();
+WMS.on.tabClosed(({ id, nextId }) => {
+  tabMap.delete(id);
+  activeId = nextId;
+  render();
 });
 
-api.on('tab-closed', ({ id, newActiveId }) => {
-  tabsMap.delete(id);
-  activeId = newActiveId;
-  renderTabs();
-  updateNavButtons();
+WMS.on.tabActive(({ id, canBack, canFwd, zoom }) => {
+  activeId = id;
+  const t  = tabMap.get(id);
+  if (t) { t.canBack = canBack; t.canFwd = canFwd; }
+  render();
+  setZoomLabel(zoom);
+  syncNav(canBack, canFwd);
 });
 
-api.on('tab-switched', d => {
-  activeId = d.id;
-  const t = tabsMap.get(d.id);
-  if (t) {
-    document.getElementById('url-bar').value = d.url !== 'about:blank' ? d.url : '';
-    currentZoom = d.zoom || 1.0;
-    updateZoomBadge();
+WMS.on.tabUpdate(({ id, title, url }) => {
+  const t = tabMap.get(id); if (!t) return;
+  t.title = title; t.url = url;
+  render();
+});
+
+WMS.on.tabLoading(({ id, v }) => {
+  const t = tabMap.get(id); if (!t) return;
+  t.loading = v;
+  render();
+});
+
+WMS.on.tabFavicon(({ id, url }) => {
+  const t = tabMap.get(id); if (!t) return;
+  t.favicon = url;
+  render();
+});
+
+WMS.on.navState(({ id, canBack, canFwd }) => {
+  const t = tabMap.get(id); if (!t) return;
+  t.canBack = canBack; t.canFwd = canFwd;
+  if (id === activeId) syncNav(canBack, canFwd);
+});
+
+WMS.on.navBlocked(host => toast(`🚫 Blocked: ${host}`, 'warn'));
+
+WMS.on.zoomChanged(({ zoom }) => setZoomLabel(zoom));
+
+WMS.on.toast(({ msg, type }) => toast(msg, type));
+
+WMS.on.findOpen(() => toggleFind());
+
+/* ── Download events ──────────────────────────────────────── */
+
+WMS.on.dlStart(({ id, filename, total }) => {
+  const card = makeDLCard(id, filename, total);
+  $('dl-tray').prepend(card.el);
+  dlCards.set(id, card);
+  setTimeout(() => { if (card.el.parentNode) card.el.remove(); }, 40_000);
+});
+
+WMS.on.dlProgress(({ id, recv, total, pct }) => {
+  const card = dlCards.get(id); if (!card) return;
+  const bar  = card.el.querySelector('.dl-bar');
+  const stat = card.el.querySelector('.dl-stat');
+  if (pct >= 0) {
+    bar.style.width = pct + '%';
+    bar.classList.remove('indet');
+    stat.textContent = `${pct}%  ·  ${fmtBytes(recv)} / ${fmtBytes(total)}`;
+  } else {
+    bar.classList.add('indet');
+    stat.textContent = `${fmtBytes(recv)} downloaded…`;
   }
-  renderTabs();
-  updateNavButtons(d);
 });
 
-api.on('tab-updated', d => {
-  const t = tabsMap.get(d.id);
-  if (t) Object.assign(t, d);
-  if (d.id === activeId) {
-    document.getElementById('url-bar').value = d.url !== 'about:blank' ? d.url : '';
-    updateNavButtons(d);
+WMS.on.dlComplete(({ id, filename, savePath }) => {
+  let card = dlCards.get(id);
+  if (!card) {
+    // PDF saves come here without a prior dl:start (printToPDF)
+    card = makeDLCard(id, filename, 1);
+    $('dl-tray').prepend(card.el);
+    dlCards.set(id, card);
   }
-  renderTabs();
+  card.savePath = savePath;
+  card.el.classList.add('done');
+  card.el.querySelector('.dl-stat').textContent = '✅ Saved to Downloads';
+  const acts = card.el.querySelector('.dl-actions');
+  acts.querySelector('.open-btn').onclick  = () => WMS.openDownloads();
+  acts.querySelector('.show-btn').onclick  = () => WMS.openDownloads();
+  setTimeout(() => { card.el.remove(); dlCards.delete(id); }, 10_000);
 });
 
-api.on('tab-loading', ({ id, loading }) => {
-  const t = tabsMap.get(id);
-  if (t) t.loading = loading;
-  renderTabs();
+WMS.on.dlError(({ id, filename }) => {
+  const card = dlCards.get(id); if (!card) return;
+  card.el.classList.add('fail');
+  card.el.querySelector('.dl-stat').textContent = '❌ Download failed or cancelled';
+  card.el.querySelector('.dl-actions').querySelector('.open-btn').textContent = 'Retry';
+  setTimeout(() => { card.el.remove(); dlCards.delete(id); }, 6_000);
 });
 
-api.on('tab-favicon', ({ id, favicon }) => {
-  const t = tabsMap.get(id);
-  if (t) t.favicon = favicon;
-  renderTabs();
-});
+/* ════════════════════════════════════════════════════════════
+   TAB RENDERING
+════════════════════════════════════════════════════════════ */
 
-// ─────────────────────────────────────────────────────────────
-// RENDER TABS
-// ─────────────────────────────────────────────────────────────
-function renderTabs() {
-  const scroll = document.getElementById('tabs-scroll');
-  scroll.innerHTML = '';
-
-  tabsMap.forEach(tab => {
-    const el = document.createElement('div');
-    el.className = 'tab'
-      + (tab.id === activeId ? ' active' : '')
-      + (tab.loading ? ' loading' : '')
-      + (tab.pinned  ? ' pinned'  : '');
-    el.title = tab.url;
-    el.onclick = () => api.switchTab(tab.id);
-
-    // Spinner
-    const spinner = document.createElement('div');
-    spinner.className = 'tab-spinner';
-
-    // Favicon
-    const fav = document.createElement(tab.favicon ? 'img' : 'div');
-    if (tab.favicon) {
-      fav.src = tab.favicon;
-      fav.className = 'tab-favicon';
-      fav.onerror = () => { fav.style.display='none'; };
-    } else {
-      fav.className = 'tab-favicon-placeholder';
-    }
-
-    // Title
-    const titleEl = document.createElement('span');
-    titleEl.className = 'tab-title';
-    titleEl.textContent = tab.pinned ? '' : (tab.title || 'New Tab');
-
-    // Close btn
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'tab-close';
-    closeBtn.innerHTML = '×';
-    closeBtn.title = 'Close tab';
-    closeBtn.onclick = e => { e.stopPropagation(); api.closeTab(tab.id); };
-
-    el.appendChild(spinner);
-    el.appendChild(fav);
-    el.appendChild(titleEl);
-    if (!tab.pinned) el.appendChild(closeBtn);
-
-    // Right-click: pin / close
-    el.oncontextmenu = e => {
-      e.preventDefault();
-      e.stopPropagation();
-      showTabContextMenu(tab.id, tab.pinned, e.clientX, e.clientY);
-    };
-
-    scroll.appendChild(el);
-  });
-
-  // Scroll active into view
-  const activeEl = scroll.querySelector('.tab.active');
-  if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+function render() {
+  strip.innerHTML = '';
+  tabMap.forEach(t => strip.appendChild(makeTabEl(t)));
+  scrollToActive();
+  const cur = tabMap.get(activeId);
+  syncNav(cur?.canBack ?? false, cur?.canFwd ?? false);
 }
 
-// ─────────────────────────────────────────────────────────────
-// TAB CONTEXT MENU (right-click on tab)
-// ─────────────────────────────────────────────────────────────
-let tabCtxMenu = null;
-function showTabContextMenu(tabId, isPinned, x, y) {
-  removeTabContextMenu();
-  const menu = document.createElement('div');
-  menu.style.cssText = `
-    position:fixed; left:${x}px; top:${y}px; z-index:9000;
-    background:var(--bg-deep); border:1px solid var(--border-bright);
-    border-radius:var(--radius); padding:6px; min-width:180px;
-    box-shadow:var(--shadow-lg); font-size:13px;
-  `;
-  const items = [
-    { icon: isPinned ? '📌' : '📌', label: isPinned ? 'Unpin Tab' : 'Pin Tab', fn: () => api.pinTab(tabId) },
-    { icon: '🔄', label: 'Reload Tab', fn: () => api.reload() },
-    { icon: '➕', label: 'New Tab', fn: () => newTab() },
-    { sep: true },
-    { icon: '✕', label: 'Close Tab', fn: () => api.closeTab(tabId), cls: 'danger' },
-  ];
-  items.forEach(it => {
-    if (it.sep) {
-      const s = document.createElement('div');
-      s.style.cssText = 'height:1px;background:var(--border);margin:4px 0;';
-      menu.appendChild(s);
-      return;
-    }
-    const row = document.createElement('div');
-    row.style.cssText = `
-      display:flex;align-items:center;gap:8px;padding:7px 10px;
-      border-radius:var(--radius-sm);cursor:pointer;
-      color:${it.cls==='danger'?'var(--red)':'var(--text-primary)'};
-      transition:background 0.15s;
-    `;
-    row.innerHTML = `<span>${it.icon}</span><span>${it.label}</span>`;
-    row.onmouseenter = () => row.style.background = 'var(--bg-hover)';
-    row.onmouseleave = () => row.style.background = 'transparent';
-    row.onclick = () => { it.fn(); removeTabContextMenu(); };
-    menu.appendChild(row);
-  });
-  document.body.appendChild(menu);
-  tabCtxMenu = menu;
-  document.addEventListener('click', removeTabContextMenu, { once: true });
-}
-function removeTabContextMenu() {
-  if (tabCtxMenu) { tabCtxMenu.remove(); tabCtxMenu = null; }
-}
+function makeTabEl(t) {
+  const isActive = t.id === activeId;
+  const el = document.createElement('div');
+  el.className = 'tab' + (isActive ? ' active' : '') + (t.loading ? ' loading' : '');
+  el.title = t.url || t.title;
+  el.onclick = () => WMS.switchTab(t.id);
 
-// ─────────────────────────────────────────────────────────────
-// NAVIGATION
-// ─────────────────────────────────────────────────────────────
-function newTab() { api.openTab(null); }
+  // Spinner
+  const spin = document.createElement('div');
+  spin.className = 'tab-spin';
 
-function navigateToUrl() {
-  const val = document.getElementById('url-bar').value.trim();
-  if (val) api.navigateTo(val);
-}
-
-document.getElementById('url-bar').addEventListener('keydown', e => {
-  if (e.key === 'Enter') navigateToUrl();
-  if (e.key === 'Escape') e.target.blur();
-});
-
-api.on('focus-urlbar', () => {
-  const bar = document.getElementById('url-bar');
-  bar.select();
-  bar.focus();
-});
-
-function updateNavButtons(data) {
-  const d = data || {};
-  document.getElementById('btn-back').disabled    = !d.canBack;
-  document.getElementById('btn-forward').disabled = !d.canFwd;
-}
-
-// ─────────────────────────────────────────────────────────────
-// ZOOM
-// ─────────────────────────────────────────────────────────────
-api.on('zoom-changed', ({ zoom }) => {
-  currentZoom = zoom;
-  updateZoomBadge();
-});
-
-function updateZoomBadge() {
-  document.getElementById('zoom-badge').textContent = Math.round(currentZoom * 100) + '%';
-}
-
-document.getElementById('url-bar-wrap').addEventListener('wheel', e => {
-  if (e.ctrlKey) {
-    e.preventDefault();
-    if (e.deltaY < 0) api.zoomIn();
-    else api.zoomOut();
+  // Favicon
+  let fav;
+  if (t.favicon) {
+    fav = document.createElement('img');
+    fav.className = 'tab-fav';
+    fav.src = t.favicon;
+    fav.onerror = () => { fav.replaceWith(ph()); };
+  } else {
+    fav = ph();
   }
-}, { passive: false });
 
-// ─────────────────────────────────────────────────────────────
-// DARK MODE
-// ─────────────────────────────────────────────────────────────
-api.on('dark-mode-changed', ({ enabled }) => {
-  darkMode = enabled;
-  document.getElementById('btn-dark').classList.toggle('on', enabled);
-});
+  // Title
+  const ttl = document.createElement('span');
+  ttl.className = 'tab-ttl';
+  ttl.textContent = t.title || 'New Tab';
 
-// ─────────────────────────────────────────────────────────────
-// FULLSCREEN
-// ─────────────────────────────────────────────────────────────
-api.on('fullscreen-change', fs => {
-  document.getElementById('btn-fullscreen').classList.toggle('on', fs);
-  document.getElementById('btn-fullscreen').textContent = fs ? '⛶' : '⛶';
-});
+  // Close
+  const x = document.createElement('button');
+  x.className = 'tab-x';
+  x.innerHTML = '&#215;';
+  x.title = 'Close Tab';
+  x.onclick = e => { e.stopPropagation(); WMS.closeTab(t.id); };
 
-// ─────────────────────────────────────────────────────────────
-// FIND IN PAGE
-// ─────────────────────────────────────────────────────────────
+  el.append(spin, fav, ttl, x);
+  return el;
+}
+
+function ph() {
+  const d = document.createElement('div');
+  d.className = 'tab-fav-ph';
+  return d;
+}
+
+function scrollToActive() {
+  const active = strip.querySelector('.tab.active');
+  if (active) active.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+}
+
+function syncNav(canBack, canFwd) {
+  $('btn-back').disabled = !canBack;
+  $('btn-fwd').disabled  = !canFwd;
+}
+
+function setZoomLabel(pct) {
+  zoomLbl.textContent = pct + '%';
+}
+
+/* ════════════════════════════════════════════════════════════
+   FIND IN PAGE
+════════════════════════════════════════════════════════════ */
+
+let findOpen = false;
+
 function toggleFind() {
-  const bar = document.getElementById('find-bar');
-  const open = !bar.classList.contains('open');
-  bar.classList.toggle('open', open);
-  if (open) { document.getElementById('find-input').focus(); document.getElementById('find-input').select(); }
-  else closeFind();
+  findOpen = !findOpen;
+  const bar = $('find-bar');
+  bar.classList.toggle('open', findOpen);
+  if (findOpen) {
+    $('find-inp').focus();
+    $('find-inp').select();
+  } else {
+    WMS.findStop();
+    $('find-inp').value = '';
+    $('find-count').textContent = '';
+  }
 }
 
 function closeFind() {
-  document.getElementById('find-bar').classList.remove('open');
-  document.getElementById('find-count').textContent = '0 / 0';
-  api.stopFind();
+  if (findOpen) toggleFind();
 }
 
-function doFind() {
-  const text = document.getElementById('find-input').value;
-  if (text) api.findInPage(text, true);
-  else document.getElementById('find-count').textContent = '0 / 0';
+function onFindInput() {
+  const q = $('find-inp').value.trim();
+  if (q) WMS.findStart(q); else WMS.findStop();
 }
 
-function findKey(e) {
-  if (e.key === 'Enter') api.findInPage(document.getElementById('find-input').value, !e.shiftKey);
-  if (e.key === 'Escape') closeFind();
-}
-
-api.on('find-toggle', ({ active }) => {
-  document.getElementById('find-bar').classList.toggle('open', active);
-  if (active) document.getElementById('find-input').focus();
-});
-
-api.on('find-result', ({ activeMatch, total }) => {
-  document.getElementById('find-count').textContent = `${activeMatch} / ${total}`;
-  document.getElementById('find-count').style.color = total === 0 ? 'var(--red)' : 'var(--text-secondary)';
-});
-
-// ─────────────────────────────────────────────────────────────
-// PANELS
-// ─────────────────────────────────────────────────────────────
-let openPanelId = null;
-
-function openPanel(name) {
-  if (openPanelId) closePanel(openPanelId);
-  document.getElementById(`panel-${name}`).classList.add('open');
-  document.getElementById('panel-overlay').classList.add('show');
-  openPanelId = name;
-  // Refresh content
-  if (name === 'passwords') api.getPasswords().then(renderPasswords);
-  if (name === 'bookmarks') api.getBookmarks().then(renderBookmarks);
-  if (name === 'history')   api.getHistory().then(renderHistory);
-  if (name === 'downloads') renderDownloads();
-}
-
-function closePanel(name) {
-  document.getElementById(`panel-${name}`).classList.remove('open');
-  document.getElementById('panel-overlay').classList.remove('show');
-  openPanelId = null;
-}
-
-function closeAllPanels() {
-  ['passwords','bookmarks','history','downloads'].forEach(n => {
-    document.getElementById(`panel-${n}`).classList.remove('open');
-  });
-  document.getElementById('panel-overlay').classList.remove('show');
-  openPanelId = null;
-}
-
-// ─────────────────────────────────────────────────────────────
-// BOOKMARKS
-// ─────────────────────────────────────────────────────────────
-function renderBookmarks(list) {
-  const el = document.getElementById('bm-list');
-  const badge = document.getElementById('bm-badge');
-  badge.classList.toggle('show', list.length > 0);
-  if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="ei">⭐</div><p>No bookmarks yet.<br>Press Ctrl+D to bookmark a page.</p></div>'; return; }
-  el.innerHTML = '';
-  list.forEach(b => {
-    const item = makeListItem(
-      '⭐', b.title || b.url, b.url,
-      [
-        { icon: '↗', title: 'Open in new tab', fn: () => api.openTab(b.url) },
-        { icon: '🗑', title: 'Delete', fn: () => api.deleteBookmark(b.url), cls: 'danger' },
-      ],
-      () => { api.navigateTo(b.url); closeAllPanels(); }
-    );
-    el.appendChild(item);
-  });
-}
-
-api.on('bookmarks-updated', renderBookmarks);
-
-// ─────────────────────────────────────────────────────────────
-// HISTORY
-// ─────────────────────────────────────────────────────────────
-function renderHistory(list) {
-  const el = document.getElementById('hist-list');
-  if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="ei">🕐</div><p>No history yet.</p></div>'; return; }
-  el.innerHTML = '';
-  // Group by date
-  let lastDate = '';
-  list.forEach(h => {
-    const d = new Date(h.ts);
-    const dateStr = d.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
-    if (dateStr !== lastDate) {
-      const lbl = document.createElement('div');
-      lbl.className = 'section-label';
-      lbl.textContent = dateStr;
-      el.appendChild(lbl);
-      lastDate = dateStr;
-    }
-    const item = makeListItem(
-      '🔗', h.title || h.url, formatTime(d),
-      [],
-      () => { api.navigateTo(h.url); closeAllPanels(); }
-    );
-    el.appendChild(item);
-  });
-}
-
-api.on('history-updated', renderHistory);
-
-function formatTime(d) {
-  return d.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' });
-}
-
-// ─────────────────────────────────────────────────────────────
-// PASSWORDS
-// ─────────────────────────────────────────────────────────────
-function renderPasswords(list) {
-  const el = document.getElementById('pw-list');
-  const badge = document.getElementById('pw-badge');
-  badge.classList.toggle('show', list.length > 0);
-  if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="ei">🔑</div><p>No saved passwords.<br>Fill the form above to save one.</p></div>'; return; }
-  el.innerHTML = '';
-  list.forEach((p, i) => {
-    const item = makeListItem(
-      '🔑', p.username, p.site,
-      [
-        { icon: '👁', title: 'Reveal password', fn: () => api.revealPassword(p.index ?? i) },
-        { icon: '🗑', title: 'Delete', fn: () => api.deletePassword(p.index ?? i), cls: 'danger' },
-      ]
-    );
-    el.appendChild(item);
-  });
-}
-
-api.on('passwords-updated', renderPasswords);
-
-api.on('password-revealed', ({ index, password }) => {
-  showToast(`Password: ${password}`, 'info', 6000);
-});
-
-function saveNewPassword() {
-  const site = document.getElementById('pw-site').value.trim();
-  const user = document.getElementById('pw-username').value.trim();
-  const pass = document.getElementById('pw-password').value;
-  if (!site || !user || !pass) { showToast('Please fill all fields', 'warn'); return; }
-  api.savePassword({ site, username: user, password: pass });
-  document.getElementById('pw-site').value = '';
-  document.getElementById('pw-username').value = '';
-  document.getElementById('pw-password').value = '';
-}
-
-// ─────────────────────────────────────────────────────────────
-// SAVE PASSWORD MODAL (auto-prompt on login page)
-// ─────────────────────────────────────────────────────────────
-api.on('login-form-detected', ({ tabId }) => {
-  savePwTabId = tabId;
-  const modal = document.getElementById('save-pw-modal');
-  // Only show if we don't already have a password for this site
-  modal.classList.add('show');
-  // Auto-hide after 8 seconds if ignored
-  setTimeout(() => modal.classList.remove('show'), 8000);
-});
-
-function confirmSavePw() {
-  const user = document.getElementById('modal-user').value.trim();
-  const pass = document.getElementById('modal-pass').value;
-  if (user && pass) {
-    api.savePassword({ site: 'arman.ahrtechdiv.com', username: user, password: pass });
+function onFindKey(e) {
+  if (e.key === 'Escape')     { closeFind(); return; }
+  if (e.key === 'Enter') {
+    e.shiftKey ? WMS.findPrev($('find-inp').value) : WMS.findNext($('find-inp').value);
   }
-  document.getElementById('save-pw-modal').classList.remove('show');
 }
 
-function dismissSavePw() {
-  document.getElementById('save-pw-modal').classList.remove('show');
+// Ctrl+F in the shell itself (for keyboard users)
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') { e.preventDefault(); toggleFind(); }
+  if (e.key === 'Escape' && findOpen) closeFind();
+});
+
+/* ════════════════════════════════════════════════════════════
+   DOWNLOAD CARDS
+════════════════════════════════════════════════════════════ */
+
+function makeDLCard(id, filename, total) {
+  const el = document.createElement('div');
+  el.className = 'dl-card';
+  el.innerHTML = `
+    <div class="dl-row1">
+      <span class="dl-ico">${fileIcon(filename)}</span>
+      <span class="dl-name" title="${esc(filename)}">${esc(filename)}</span>
+      <button class="dl-dismiss" onclick="this.closest('.dl-card').remove()">✕</button>
+    </div>
+    <div class="dl-track"><div class="dl-bar indet"></div></div>
+    <div class="dl-stat">Downloading…</div>
+    <div class="dl-actions">
+      <button class="dl-act-btn primary open-btn">📂 Open Folder</button>
+      <button class="dl-act-btn show-btn">Show File</button>
+    </div>
+  `;
+  return { el, savePath: null };
 }
 
-// ─────────────────────────────────────────────────────────────
-// DOWNLOADS
-// ─────────────────────────────────────────────────────────────
-api.on('download-started', dl => {
-  downloads.set(dl.id, { ...dl, percent: 0 });
-  document.getElementById('dl-badge').classList.add('show');
-  renderDownloads();
-  showToast(`Downloading: ${dl.filename}`, 'info');
-});
-
-api.on('download-progress', ({ id, percent }) => {
-  const dl = downloads.get(id);
-  if (dl) { dl.percent = percent; dl.status = 'downloading'; }
-  renderDownloads();
-});
-
-api.on('download-done', ({ id, status, path: p }) => {
-  const dl = downloads.get(id);
-  if (dl) { dl.status = status; dl.percent = 100; dl.path = p; }
-  renderDownloads();
-});
-
-function renderDownloads() {
-  const el = document.getElementById('dl-list');
-  if (!downloads.size) {
-    el.innerHTML = '<div class="empty-state"><div class="ei">⬇️</div><p>No downloads yet.</p></div>';
-    return;
-  }
-  el.innerHTML = '';
-  [...downloads.values()].reverse().forEach(dl => {
-    const wrap = document.createElement('div');
-    wrap.className = 'p-item dl-item';
-
-    const icon = document.createElement('div');
-    icon.className = 'p-item-icon';
-    icon.textContent = dl.status === 'done' ? '✅' : dl.status === 'failed' ? '❌' : '⬇️';
-
-    const body = document.createElement('div');
-    body.className = 'p-item-body';
-    body.innerHTML = `
-      <div class="p-item-title">${esc(dl.filename)}</div>
-      <div class="dl-progress-bar"><div class="dl-progress-fill" style="width:${dl.percent||0}%"></div></div>
-      <div class="dl-status ${dl.status}">${
-        dl.status === 'done' ? '✓ Complete' :
-        dl.status === 'failed' ? '✗ Failed' :
-        `${dl.percent||0}% — ${fmtBytes(dl.received)} / ${fmtBytes(dl.size)}`
-      }</div>
-    `;
-
-    const actions = document.createElement('div');
-    actions.className = 'p-item-actions';
-    if (dl.status === 'done') {
-      const openBtn = document.createElement('button');
-      openBtn.className = 'p-action-btn';
-      openBtn.title = 'Open file';
-      openBtn.textContent = '↗';
-      openBtn.onclick = () => api.openFile(dl.path);
-      actions.appendChild(openBtn);
-    }
-
-    wrap.appendChild(icon);
-    wrap.appendChild(body);
-    wrap.appendChild(actions);
-    el.appendChild(wrap);
-  });
+function fileIcon(name) {
+  const e = (name || '').split('.').pop().toLowerCase();
+  return ({
+    pdf:'📄', xls:'📊', xlsx:'📊', csv:'📊', ods:'📊',
+    doc:'📝', docx:'📝', txt:'📝', odt:'📝', rtf:'📝', md:'📝',
+    zip:'📦', rar:'📦', '7z':'📦', gz:'📦', tar:'📦',
+    png:'🖼', jpg:'🖼', jpeg:'🖼', gif:'🖼', svg:'🖼', webp:'🖼', bmp:'🖼', ico:'🖼',
+    mp4:'🎬', avi:'🎬', mov:'🎬', mkv:'🎬',
+    mp3:'🎵', wav:'🎵', ogg:'🎵', flac:'🎵',
+    exe:'⚙️', msi:'⚙️', apk:'📱',
+    html:'🌐', css:'🎨', js:'📜', py:'🐍', php:'🐘', java:'☕',
+    json:'📋', xml:'📋', sql:'🗄',
+  })[e] || '⬇️';
 }
+
+/* ════════════════════════════════════════════════════════════
+   TOAST
+════════════════════════════════════════════════════════════ */
+
+let _tt;
+function toast(msg, type = '') {
+  const el = $('toast');
+  el.textContent = msg;
+  el.className   = 'show' + (type ? ' ' + type : '');
+  clearTimeout(_tt);
+  _tt = setTimeout(() => el.className = '', 3000);
+}
+
+/* ════════════════════════════════════════════════════════════
+   UTILITIES
+════════════════════════════════════════════════════════════ */
 
 function fmtBytes(b) {
-  if (!b) return '?';
-  if (b < 1024) return b + 'B';
-  if (b < 1048576) return (b/1024).toFixed(1) + 'KB';
-  return (b/1048576).toFixed(1) + 'MB';
+  if (!b || b < 0) return '?';
+  if (b < 1024)            return b + ' B';
+  if (b < 1024 * 1024)     return (b / 1024).toFixed(1) + ' KB';
+  if (b < 1024 ** 3)       return (b / 1024 / 1024).toFixed(1) + ' MB';
+  return (b / 1024 ** 3).toFixed(2) + ' GB';
 }
 
-// ─────────────────────────────────────────────────────────────
-// TOAST SYSTEM
-// ─────────────────────────────────────────────────────────────
-const TOAST_ICONS = { success:'✅', error:'❌', warn:'⚠️', info:'ℹ️' };
-
-function showToast(msg, type='info', dur=3000) {
-  const stack = document.getElementById('toast-stack');
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.innerHTML = `<span class="toast-icon">${TOAST_ICONS[type]||'ℹ️'}</span><span>${esc(msg)}</span>`;
-  stack.appendChild(el);
-  setTimeout(() => {
-    el.classList.add('fade-out');
-    setTimeout(() => el.remove(), 300);
-  }, dur);
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-
-api.on('show-toast', ({ msg, type }) => showToast(msg, type));
-
-// ─────────────────────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────────────────────
-function makeListItem(icon, title, sub, actions=[], onclick=null) {
-  const item = document.createElement('div');
-  item.className = 'p-item';
-  if (onclick) item.onclick = onclick;
-
-  const iconEl = document.createElement('div');
-  iconEl.className = 'p-item-icon';
-  iconEl.textContent = icon;
-
-  const body = document.createElement('div');
-  body.className = 'p-item-body';
-  body.innerHTML = `<div class="p-item-title">${esc(title)}</div><div class="p-item-sub">${esc(sub)}</div>`;
-
-  const actEl = document.createElement('div');
-  actEl.className = 'p-item-actions';
-  actions.forEach(a => {
-    const btn = document.createElement('button');
-    btn.className = 'p-action-btn' + (a.cls ? ' ' + a.cls : '');
-    btn.title = a.title; btn.textContent = a.icon;
-    btn.onclick = e => { e.stopPropagation(); a.fn(); };
-    actEl.appendChild(btn);
-  });
-
-  item.appendChild(iconEl);
-  item.appendChild(body);
-  item.appendChild(actEl);
-  return item;
-}
-
-function esc(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// Keyboard shortcut hints
-document.addEventListener('keydown', e => {
-  if (e.ctrlKey && e.key === 'd') { e.preventDefault(); api.bookmarkToggle(); }
-  if (e.ctrlKey && e.key === 'f') { e.preventDefault(); toggleFind(); }
-  if (e.key === 'Escape') { closeAllPanels(); closeFind(); }
-});
 </script>
 </body>
 </html>
