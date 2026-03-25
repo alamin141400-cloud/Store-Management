@@ -1,9 +1,9 @@
 {
-  "name": "Smart Store",
+  "name": "Smart-store",
   "version": "1.0.0",
   "description": "Smart Store – Warehouse Management System Desktop Client",
   "main": "src/main.js",
-  "author": "Arman Store",
+  "author": "Smart Store",
   "license": "MIT",
   "scripts": {
     "start":       "electron .",
@@ -17,13 +17,13 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId":       "com.smart.store",
+    "appId":       "com.arman.store",
     "productName": "Smart Store",
     "directories": {
       "output": "dist"
     },
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [{ "target": "nsis", "arch": ["x64"] }]
     },
     "nsis": {
       "oneClick":          false,
@@ -32,10 +32,10 @@
       "createStartMenuShortcut": true
     },
     "mac": {
-      "target": "dmg",
+      "target": "dmg"
     },
     "linux": {
-      "target": "AppImage",
+      "target": "AppImage"
     }
   }
 }
