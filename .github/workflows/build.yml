@@ -1,5 +1,5 @@
 name: Build Windows App
-run: npx electron-builder --publish=never
+
 on:
   push:
     branches: [ "main" ]
