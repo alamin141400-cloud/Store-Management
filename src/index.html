@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Arman Store</title>
+  <style>
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #1A237E;
+      height: 52px;          /* Shell only occupies the tab bar height */
+      overflow: hidden;
+      user-select: none;
+      -webkit-app-region: drag; /* Allow dragging the window by the tab bar */
+    }
+
+    /* ── Tab bar container ── */
+    #tab-bar {
+      display: flex;
+      align-items: center;
+      height: 52px;
+      background: #1A237E;
+      padding: 0 4px;
+      gap: 2px;
+      -webkit-app-region: no-drag;
+    }
+
+    /* ── Scrollable tabs area ── */
+    #tabs-scroll {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      overflow-x: auto;
+      overflow-y: hidden;
+      gap: 3px;
+      height: 100%;
+      padding: 6px 0;
+      scrollbar-width: none;
+    }
+    #tabs-scroll::-webkit-scrollbar { display: none; }
+
+    /* ── Single tab button ── */
+    .tab {
+      display: flex;
+      align-items: center;
+      min-width: 130px;
+      max-width: 200px;
+      height: 36px;
+      background: #283593;
+      border-radius: 6px;
+      padding: 0 8px 0 10px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s;
+      gap: 6px;
+    }
+    .tab:hover { background: #303F9F; }
+    .tab.active {
+      background: #3949AB;
+      box-shadow: inset 0 -2px 0 #42A5F5;
+    }
+
+    /* ── Spinner inside tab ── */
+    .tab-spinner {
+      width: 12px; height: 12px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #90CAF9;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+      display: none;
+    }
+    .tab.loading .tab-spinner { display: block; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Tab favicon placeholder ── */
+    .tab-icon {
+      width: 14px; height: 14px;
+      background: rgba(255,255,255,0.25);
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .tab.loading .tab-icon { display: none; }
+
+    /* ── Tab title ── */
+    .tab-title {
+      flex: 1;
+      font-size: 12px;
+      color: #E8EAF6;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tab.active .tab-title { color: #FFFFFF; }
+
+    /* ── Close (×) button ── */
+    .tab-close {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: #9FA8DA;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.12s, color 0.12s;
+      padding: 0;
+    }
+    .tab-close:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+    /* ── Control buttons (back, forward, reload) ── */
+    #nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 0 4px;
+      -webkit-app-region: no-drag;
+    }
+    .nav-btn {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: #9FA8DA;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.12s, color 0.12s;
+    }
+    .nav-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .nav-btn:disabled { opacity: 0.3; cursor: default; }
+
+    /* ── New Tab (+) button ── */
+    #btn-new-tab {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: #9FA8DA;
+      font-size: 22px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.12s, color 0.12s;
+      -webkit-app-region: no-drag;
+    }
+    #btn-new-tab:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+    /* ── Toast notification ── */
+    #toast {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      background: rgba(0,0,0,0.75);
+      color: #fff;
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      pointer-events: none;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+      opacity: 0;
+      z-index: 9999;
+      white-space: nowrap;
+    }
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="tab-bar">
+    <!-- Back / Forward / Reload controls -->
+    <div id="nav-controls">
+      <button class="nav-btn" id="btn-back"    title="Back"    onclick="api.goBack()">&#8592;</button>
+      <button class="nav-btn" id="btn-forward" title="Forward" onclick="api.goForward()">&#8594;</button>
+      <button class="nav-btn" id="btn-reload"  title="Reload"  onclick="api.reload()">&#8635;</button>
+    </div>
+
+    <!-- Scrollable tab strip -->
+    <div id="tabs-scroll">
+      <!-- Tab elements injected here by JS -->
+    </div>
+
+    <!-- New tab button -->
+    <button id="btn-new-tab" title="New Tab" onclick="openNewTab()">+</button>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    /**
+     * index.html JavaScript
+     *
+     * Manages the tab bar UI.
+     * All actual web content is in BrowserViews managed by main.js.
+     * Communication is via window.electronAPI (injected by preload.js).
+     *
+     * tabsState: Map<id, { id, title, url, loading }>
+     * activeTabId: number | null
+     */
+
+    const api          = window.electronAPI;
+    const tabsScroll   = document.getElementById('tabs-scroll');
+    const tabsState    = new Map();   // id → { id, title, url, loading }
+    let   activeTabId  = null;
+
+    // ── IPC listeners ──────────────────────────────────────────
+
+    // New tab was opened in main process
+    api.onTabOpened(({ id, title, url }) => {
+      tabsState.set(id, { id, title, url, loading: true });
+      activeTabId = id;
+      renderTabs();
+    });
+
+    // Tab was closed
+    api.onTabClosed(({ id, newActiveId }) => {
+      tabsState.delete(id);
+      activeTabId = newActiveId;
+      renderTabs();
+    });
+
+    // Active tab changed
+    api.onTabSwitched(({ id }) => {
+      activeTabId = id;
+      renderTabs();
+    });
+
+    // Tab title/url updated
+    api.onTabUpdated(({ id, title, url }) => {
+      const tab = tabsState.get(id);
+      if (tab) { tab.title = title; tab.url = url; renderTabs(); }
+    });
+
+    // Tab loading state changed
+    api.onTabLoading(({ id, loading }) => {
+      const tab = tabsState.get(id);
+      if (tab) { tab.loading = loading; renderTabs(); }
+    });
+
+    // Max tabs reached
+    api.onLimitReached((max) => showToast(`Maximum ${max} tabs allowed`));
+
+    // Can't close last tab
+    api.onCloseBlocked(() => showToast('Cannot close the last tab'));
+
+    // ── Tab actions ────────────────────────────────────────────
+
+    function openNewTab() {
+      api.openTab(null);   // main.js will use HOME_URL
+    }
+
+    function switchTab(id) {
+      api.switchTab(id);
+    }
+
+    function closeTab(id, event) {
+      event.stopPropagation();   // Don't trigger switchTab
+      api.closeTab(id);
+    }
+
+    // ── Render ─────────────────────────────────────────────────
+
+    function renderTabs() {
+      tabsScroll.innerHTML = '';
+
+      tabsState.forEach(({ id, title, loading }) => {
+        const isActive = id === activeTabId;
+
+        const tabEl = document.createElement('div');
+        tabEl.className = 'tab' + (isActive ? ' active' : '') + (loading ? ' loading' : '');
+        tabEl.title = title;
+        tabEl.onclick = () => switchTab(id);
+
+        // Spinner (shown while loading)
+        const spinner = document.createElement('div');
+        spinner.className = 'tab-spinner';
+
+        // Favicon placeholder (shown when not loading)
+        const icon = document.createElement('div');
+        icon.className = 'tab-icon';
+
+        // Title
+        const titleEl = document.createElement('span');
+        titleEl.className = 'tab-title';
+        // Truncate long titles
+        titleEl.textContent = title.length > 20 ? title.substring(0, 20) + '…' : title;
+
+        // Close button
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'tab-close';
+        closeBtn.innerHTML = '&times;';
+        closeBtn.title = 'Close tab';
+        closeBtn.onclick = (e) => closeTab(id, e);
+
+        tabEl.appendChild(spinner);
+        tabEl.appendChild(icon);
+        tabEl.appendChild(titleEl);
+        tabEl.appendChild(closeBtn);
+        tabsScroll.appendChild(tabEl);
+      });
+
+      // Auto-scroll to active tab
+      scrollToActiveTab();
+    }
+
+    function scrollToActiveTab() {
+      const tabs = tabsScroll.querySelectorAll('.tab');
+      const activeEl = tabsScroll.querySelector('.tab.active');
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+      }
+    }
+
+    // ── Toast notification ─────────────────────────────────────
+
+    let toastTimer = null;
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+  </script>
+</body>
+</html>
