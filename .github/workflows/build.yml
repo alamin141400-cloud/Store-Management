@@ -1,0 +1,30 @@
+name: Build Windows App
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build App
+        run: npx electron-builder
+
+      - name: Upload EXE
+        uses: actions/upload-artifact@v3
+        with:
+          name: arman-browser
+          path: dist/*
