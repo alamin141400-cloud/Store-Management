@@ -1,238 +1,161 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark-blue">
+<html lang="en" data-bs-theme="dark">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Smart Store WMS</title>
 
-<!-- Bootstrap 5 CSS -->
-<link rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+<!-- Bootstrap 5 CSS (loaded via whitelisted CDN) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
 <!-- Bootstrap Icons -->
-<link rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"/>
 
 <style>
-/* ═══════════════════════════════════════════════════════════════
-   THEME SYSTEM  — 8 built-in themes
-   Each theme sets a palette of CSS custom-properties.
-   The JS engine toggles [data-theme] on <html>.
-═══════════════════════════════════════════════════════════════ */
-
-/* ── Dark Blue (default) ── */
-[data-theme="dark-blue"] {
+/* ═══════════════════════════════════════════════════════════
+   THEME VARIABLES — toggled by [data-theme] on <html>
+═══════════════════════════════════════════════════════════ */
+:root, [data-theme="dark-blue"] {
+  --bar-h:         110px;
+  --toolbar-h:     52px;
+  --tabrow-h:      58px;
+  --panel-w:       340px;
   --bg-bar:        #0d1554;
   --bg-toolbar:    #111d6b;
   --bg-tab:        #1a277a;
   --bg-tab-hover:  #223194;
   --bg-tab-active: #1358ad;
-  --bg-panel:      #0a0f3d;
-  --bg-input:      rgba(255,255,255,.07);
-  --border:        rgba(255,255,255,.10);
+  --bg-panel:      #080e3a;
+  --bg-input:      rgba(255,255,255,.08);
+  --border:        rgba(255,255,255,.12);
   --accent:        #3b9ef5;
   --accent-dim:    rgba(59,158,245,.18);
   --text:          #c9d5f8;
   --text-hi:       #ffffff;
   --text-muted:    #5e70b5;
   --success:       #4caf82;
-  --warning:       #f5a623;
+  --warn:          #f5a623;
   --danger:        #e05252;
   --radius:        8px;
-  --bs-body-bg:    #0d1554;
 }
-
-/* ── Midnight Black ── */
 [data-theme="midnight"] {
-  --bg-bar:        #0d0d0d;
-  --bg-toolbar:    #161616;
-  --bg-tab:        #1e1e1e;
-  --bg-tab-hover:  #2a2a2a;
-  --bg-tab-active: #0078d4;
-  --bg-panel:      #111111;
-  --bg-input:      rgba(255,255,255,.06);
-  --border:        rgba(255,255,255,.08);
-  --accent:        #0078d4;
-  --accent-dim:    rgba(0,120,212,.2);
-  --text:          #cccccc;
-  --text-hi:       #ffffff;
-  --text-muted:    #666666;
-  --success:       #4ec9b0;
-  --warning:       #ce9178;
-  --danger:        #f44747;
-  --radius:        6px;
+  --bg-bar:#0d0d0d; --bg-toolbar:#161616; --bg-tab:#1e1e1e;
+  --bg-tab-hover:#2a2a2a; --bg-tab-active:#0078d4; --bg-panel:#111111;
+  --bg-input:rgba(255,255,255,.06); --border:rgba(255,255,255,.08);
+  --accent:#0078d4; --accent-dim:rgba(0,120,212,.2);
+  --text:#cccccc; --text-hi:#fff; --text-muted:#666;
+  --success:#4ec9b0; --warn:#ce9178; --danger:#f44747; --radius:6px;
 }
-
-/* ── Emerald Green ── */
 [data-theme="emerald"] {
-  --bg-bar:        #052e16;
-  --bg-toolbar:    #064e3b;
-  --bg-tab:        #065f46;
-  --bg-tab-hover:  #047857;
-  --bg-tab-active: #059669;
-  --bg-panel:      #022c22;
-  --bg-input:      rgba(255,255,255,.07);
-  --border:        rgba(255,255,255,.12);
-  --accent:        #10b981;
-  --accent-dim:    rgba(16,185,129,.2);
-  --text:          #d1fae5;
-  --text-hi:       #ffffff;
-  --text-muted:    #6ee7b7;
-  --success:       #34d399;
-  --warning:       #fbbf24;
-  --danger:        #f87171;
-  --radius:        8px;
+  --bg-bar:#052e16; --bg-toolbar:#064e3b; --bg-tab:#065f46;
+  --bg-tab-hover:#047857; --bg-tab-active:#059669; --bg-panel:#022c22;
+  --bg-input:rgba(255,255,255,.07); --border:rgba(255,255,255,.12);
+  --accent:#10b981; --accent-dim:rgba(16,185,129,.2);
+  --text:#d1fae5; --text-hi:#fff; --text-muted:#6ee7b7;
+  --success:#34d399; --warn:#fbbf24; --danger:#f87171; --radius:8px;
 }
-
-/* ── Royal Purple ── */
 [data-theme="purple"] {
-  --bg-bar:        #1e1035;
-  --bg-toolbar:    #2d1b69;
-  --bg-tab:        #3b1f8c;
-  --bg-tab-hover:  #4c28a8;
-  --bg-tab-active: #7c3aed;
-  --bg-panel:      #130b24;
-  --bg-input:      rgba(255,255,255,.07);
-  --border:        rgba(255,255,255,.12);
-  --accent:        #a78bfa;
-  --accent-dim:    rgba(167,139,250,.2);
-  --text:          #ede9fe;
-  --text-hi:       #ffffff;
-  --text-muted:    #7c6fb5;
-  --success:       #34d399;
-  --warning:       #fbbf24;
-  --danger:        #f87171;
-  --radius:        10px;
+  --bg-bar:#1e1035; --bg-toolbar:#2d1b69; --bg-tab:#3b1f8c;
+  --bg-tab-hover:#4c28a8; --bg-tab-active:#7c3aed; --bg-panel:#130b24;
+  --bg-input:rgba(255,255,255,.07); --border:rgba(255,255,255,.12);
+  --accent:#a78bfa; --accent-dim:rgba(167,139,250,.2);
+  --text:#ede9fe; --text-hi:#fff; --text-muted:#7c6fb5;
+  --success:#34d399; --warn:#fbbf24; --danger:#f87171; --radius:10px;
 }
-
-/* ── Crimson Red ── */
 [data-theme="crimson"] {
-  --bg-bar:        #1c0a0a;
-  --bg-toolbar:    #2d1010;
-  --bg-tab:        #3d1414;
-  --bg-tab-hover:  #521818;
-  --bg-tab-active: #b91c1c;
-  --bg-panel:      #110606;
-  --bg-input:      rgba(255,255,255,.07);
-  --border:        rgba(255,255,255,.1);
-  --accent:        #ef4444;
-  --accent-dim:    rgba(239,68,68,.2);
-  --text:          #fee2e2;
-  --text-hi:       #ffffff;
-  --text-muted:    #9b6060;
-  --success:       #4ade80;
-  --warning:       #fbbf24;
-  --danger:        #f87171;
-  --radius:        6px;
+  --bg-bar:#1c0a0a; --bg-toolbar:#2d1010; --bg-tab:#3d1414;
+  --bg-tab-hover:#521818; --bg-tab-active:#b91c1c; --bg-panel:#110606;
+  --bg-input:rgba(255,255,255,.07); --border:rgba(255,255,255,.1);
+  --accent:#ef4444; --accent-dim:rgba(239,68,68,.2);
+  --text:#fee2e2; --text-hi:#fff; --text-muted:#9b6060;
+  --success:#4ade80; --warn:#fbbf24; --danger:#f87171; --radius:6px;
 }
-
-/* ── Ocean Teal ── */
 [data-theme="ocean"] {
-  --bg-bar:        #042f2e;
-  --bg-toolbar:    #134e4a;
-  --bg-tab:        #115e59;
-  --bg-tab-hover:  #0d7377;
-  --bg-tab-active: #0891b2;
-  --bg-panel:      #021b1b;
-  --bg-input:      rgba(255,255,255,.07);
-  --border:        rgba(255,255,255,.12);
-  --accent:        #22d3ee;
-  --accent-dim:    rgba(34,211,238,.18);
-  --text:          #cffafe;
-  --text-hi:       #ffffff;
-  --text-muted:    #5cb8c4;
-  --success:       #34d399;
-  --warning:       #fbbf24;
-  --danger:        #f87171;
-  --radius:        10px;
+  --bg-bar:#042f2e; --bg-toolbar:#134e4a; --bg-tab:#115e59;
+  --bg-tab-hover:#0d7377; --bg-tab-active:#0891b2; --bg-panel:#021b1b;
+  --bg-input:rgba(255,255,255,.07); --border:rgba(255,255,255,.12);
+  --accent:#22d3ee; --accent-dim:rgba(34,211,238,.18);
+  --text:#cffafe; --text-hi:#fff; --text-muted:#5cb8c4;
+  --success:#34d399; --warn:#fbbf24; --danger:#f87171; --radius:10px;
 }
-
-/* ── Slate Light ── */
 [data-theme="light"] {
-  --bg-bar:        #f1f5f9;
-  --bg-toolbar:    #e2e8f0;
-  --bg-tab:        #cbd5e1;
-  --bg-tab-hover:  #b0bccc;
-  --bg-tab-active: #3b82f6;
-  --bg-panel:      #f8fafc;
-  --bg-input:      rgba(0,0,0,.05);
-  --border:        rgba(0,0,0,.1);
-  --accent:        #3b82f6;
-  --accent-dim:    rgba(59,130,246,.15);
-  --text:          #334155;
-  --text-hi:       #0f172a;
-  --text-muted:    #94a3b8;
-  --success:       #16a34a;
-  --warning:       #d97706;
-  --danger:        #dc2626;
-  --radius:        8px;
+  --bg-bar:#f1f5f9; --bg-toolbar:#e2e8f0; --bg-tab:#cbd5e1;
+  --bg-tab-hover:#b0bccc; --bg-tab-active:#3b82f6; --bg-panel:#f8fafc;
+  --bg-input:rgba(0,0,0,.05); --border:rgba(0,0,0,.1);
+  --accent:#3b82f6; --accent-dim:rgba(59,130,246,.15);
+  --text:#334155; --text-hi:#0f172a; --text-muted:#94a3b8;
+  --success:#16a34a; --warn:#d97706; --danger:#dc2626; --radius:8px;
 }
-
-/* ── Amber Gold ── */
 [data-theme="amber"] {
-  --bg-bar:        #1c1200;
-  --bg-toolbar:    #2d1e00;
-  --bg-tab:        #3d2a00;
-  --bg-tab-hover:  #523800;
-  --bg-tab-active: #b45309;
-  --bg-panel:      #110d00;
-  --bg-input:      rgba(255,255,255,.07);
-  --border:        rgba(255,255,255,.1);
-  --accent:        #f59e0b;
-  --accent-dim:    rgba(245,158,11,.2);
-  --text:          #fef3c7;
-  --text-hi:       #ffffff;
-  --text-muted:    #9b7e40;
-  --success:       #4ade80;
-  --warning:       #fb923c;
-  --danger:        #f87171;
-  --radius:        6px;
+  --bg-bar:#1c1200; --bg-toolbar:#2d1e00; --bg-tab:#3d2a00;
+  --bg-tab-hover:#523800; --bg-tab-active:#b45309; --bg-panel:#110d00;
+  --bg-input:rgba(255,255,255,.07); --border:rgba(255,255,255,.1);
+  --accent:#f59e0b; --accent-dim:rgba(245,158,11,.2);
+  --text:#fef3c7; --text-hi:#fff; --text-muted:#9b7e40;
+  --success:#4ade80; --warn:#fb923c; --danger:#f87171; --radius:6px;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   BASE RESET + SCROLLBAR
-═══════════════════════════════════════════════════════════════ */
-*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+/* ═══════════════════════════════════════════════════════════
+   KEY FIX: body must be FULL SCREEN height so fixed children
+   (panels, toasts, find bar) render outside the 110px bar.
+   The bar itself clips to 110px via #shell.
+═══════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body {
-  height: 110px;   /* matches TABBAR_H in main.js */
+html {
+  height: 100vh;
+  overflow: hidden;
+  background: transparent;
+}
+
+body {
+  /* Full viewport height — panels use position:fixed relative to this */
+  height: 100vh;
   overflow: hidden;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   font-size: 13px;
-  background: var(--bg-bar);
   color: var(--text);
-  user-select: none;
+  background: transparent;
+  /* Only the 110px bar drags the window */
+  -webkit-app-region: no-drag;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ═══════════════════════════════════════════════════════════
+   SHELL — the 110px bar (toolbar + tabrow)
+═══════════════════════════════════════════════════════════ */
+#shell {
+  height: var(--bar-h);
+  display: flex;
+  flex-direction: column;
   -webkit-app-region: drag;
 }
 
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-
-/* ═══════════════════════════════════════════════════════════════
-   SHELL  (two rows: toolbar + tabbar)
-   TABBAR_H = 110px = toolbar(52px) + tabstrip(58px)
-═══════════════════════════════════════════════════════════════ */
-#shell { height: 110px; display: flex; flex-direction: column; }
-
-/* ── Row 1 — Toolbar ── */
+/* ── Toolbar (row 1, 52px) ── */
 #toolbar {
-  height: 52px;
+  height: var(--toolbar-h);
+  flex-shrink: 0;
   background: var(--bg-toolbar);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   padding: 0 8px;
   -webkit-app-region: no-drag;
 }
 
-/* ── Row 2 — Tab strip ── */
+/* ── Tab strip (row 2, 58px) ── */
 #tabrow {
-  height: 58px;
+  height: var(--tabrow-h);
+  flex-shrink: 0;
   background: var(--bg-bar);
   display: flex;
   align-items: flex-end;
-  padding: 0 8px 0 8px;
+  padding: 0 6px;
   gap: 3px;
   overflow-x: auto;
   overflow-y: hidden;
@@ -241,177 +164,205 @@ html, body {
 }
 #tabrow::-webkit-scrollbar { display: none; }
 
-/* ── Logo / brand ── */
+/* ═══════════════════════════════════════════════════════════
+   BRAND
+═══════════════════════════════════════════════════════════ */
 #brand {
   display: flex; align-items: center; gap: 7px;
   flex-shrink: 0; margin-right: 4px;
 }
 #brand-logo {
-  width: 28px; height: 28px;
+  width: 30px; height: 30px;
   background: var(--accent);
-  border-radius: 7px;
+  border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 15px; color: #fff; font-weight: 700;
+  font-size: 16px; color: #fff; flex-shrink: 0;
+  box-shadow: 0 2px 8px var(--accent-dim);
 }
 #brand-name {
-  font-size: 13px; font-weight: 700;
+  font-size: 14px; font-weight: 700;
   color: var(--text-hi);
   letter-spacing: .3px;
   white-space: nowrap;
 }
 
-/* ── Generic toolbar button ── */
+/* ═══════════════════════════════════════════════════════════
+   TOOLBAR BUTTONS
+═══════════════════════════════════════════════════════════ */
 .tbtn {
-  border: none; background: transparent; color: var(--text-muted);
-  cursor: pointer; border-radius: var(--radius);
+  border: none; background: transparent;
+  color: var(--text-muted); cursor: pointer;
+  border-radius: var(--radius);
   display: inline-flex; align-items: center; justify-content: center;
   gap: 5px; padding: 5px 8px;
-  font-size: 13px;
-  transition: background .14s, color .14s, transform .1s;
-  white-space: nowrap;
-  -webkit-app-region: no-drag;
+  font-size: 13px; white-space: nowrap;
+  transition: background .14s, color .14s, transform .08s;
+  flex-shrink: 0;
 }
-.tbtn:hover:not(:disabled) { background: rgba(255,255,255,.09); color: var(--text-hi); }
-.tbtn:active:not(:disabled) { transform: scale(.94); }
-.tbtn:disabled { opacity: .3; cursor: default; }
-.tbtn.icon-only { width: 34px; height: 34px; padding: 0; border-radius: 50%; }
+.tbtn:hover:not(:disabled) {
+  background: rgba(255,255,255,.1);
+  color: var(--text-hi);
+}
+.tbtn:active:not(:disabled) { transform: scale(.93); }
+.tbtn:disabled { opacity: .28; cursor: default; }
+.tbtn.sq { width: 34px; height: 34px; padding: 0; border-radius: 50%; }
 .tbtn.active { background: var(--accent-dim); color: var(--accent); }
-.tbtn .bi { font-size: 16px; }
+.tbtn .bi { font-size: 15px; line-height: 1; }
 
-/* ── URL bar ── */
-#url-bar {
+.vdiv { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════════════════
+   URL BAR
+═══════════════════════════════════════════════════════════ */
+#url-wrap {
   flex: 1; min-width: 0;
   height: 34px;
   background: var(--bg-input);
   border: 1px solid var(--border);
   border-radius: 20px;
-  display: flex; align-items: center;
-  gap: 8px;
-  padding: 0 12px;
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 10px;
   transition: border-color .15s, box-shadow .15s;
 }
-#url-bar:focus-within {
+#url-wrap:focus-within {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-dim);
 }
-#url-icon { font-size: 14px; color: var(--text-muted); flex-shrink: 0; }
+#url-icon { font-size: 13px; color: var(--success); flex-shrink: 0; }
 #url-input {
   flex: 1; border: none; background: transparent;
   color: var(--text-hi); font-size: 12px; outline: none;
-  caret-color: var(--accent);
+  caret-color: var(--accent); min-width: 0;
 }
 #url-input::placeholder { color: var(--text-muted); }
 #url-go {
-  width: 24px; height: 24px; border-radius: 50%; border: none;
+  width: 22px; height: 22px; border-radius: 50%; border: none;
   background: var(--accent-dim); color: var(--accent);
-  cursor: pointer; font-size: 13px;
+  cursor: pointer; font-size: 12px;
   display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  transition: background .14s;
+  flex-shrink: 0; transition: background .14s, color .14s;
 }
 #url-go:hover { background: var(--accent); color: #fff; }
 
-/* ── Toolbar divider ── */
-.vdiv { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; margin: 0 2px; }
-
-/* ── Zoom display pill ── */
+/* ═══════════════════════════════════════════════════════════
+   ZOOM PILL
+═══════════════════════════════════════════════════════════ */
 #zoom-pill {
-  display: flex; align-items: center; gap: 1px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 0; flex-shrink: 0;
 }
 #zoom-val {
-  font-size: 11px; min-width: 38px; text-align: center;
+  font-size: 11px; min-width: 36px; text-align: center;
   color: var(--text-muted); font-variant-numeric: tabular-nums;
-  padding: 2px 4px;
 }
 
-/* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    TABS
-═══════════════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════ */
 .tab {
-  display: flex; align-items: center; gap: 7px;
-  min-width: 150px; max-width: 220px;
-  height: 44px;
+  display: flex; align-items: center; gap: 6px;
+  min-width: 148px; max-width: 210px; height: 42px;
   background: var(--bg-tab);
-  border: 1px solid transparent;
-  border-bottom: none;
+  border: 1px solid transparent; border-bottom: none;
   border-radius: 8px 8px 0 0;
-  padding: 0 8px 0 10px;
+  padding: 0 7px 0 10px;
   cursor: pointer; flex-shrink: 0;
   position: relative;
-  transition: background .14s, border-color .14s;
-  -webkit-app-region: no-drag;
   align-self: flex-end;
+  transition: background .13s, border-color .13s, height .13s;
 }
 .tab:hover { background: var(--bg-tab-hover); }
 .tab.active {
   background: var(--bg-tab-active);
   border-color: var(--border);
-  border-bottom-color: var(--bg-tab-active);
+  border-bottom-color: transparent;
   height: 50px;
+  box-shadow: 0 -2px 8px rgba(0,0,0,.25);
 }
-.tab.active::after {
+.tab.active::before {
   content: '';
   position: absolute; top: 0; left: 0; right: 0; height: 2px;
   background: var(--accent);
   border-radius: 8px 8px 0 0;
 }
-.tab.pinned { min-width: 48px; max-width: 48px; }
+.tab.pinned { min-width: 44px; max-width: 44px; }
+.tab.pinned .t-ttl, .tab.pinned .t-x { display: none; }
 
-/* Tab spinner */
+/* spinner */
 .t-spin {
-  width: 13px; height: 13px; flex-shrink: 0;
-  border: 2px solid rgba(255,255,255,.12);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  display: none;
-  animation: spin .6s linear infinite;
+  width: 12px; height: 12px; flex-shrink: 0; display: none;
+  border: 2px solid rgba(255,255,255,.1); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .6s linear infinite;
 }
 .tab.loading .t-spin { display: block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Favicon */
+/* favicon */
 .t-fav { width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0; object-fit: contain; }
-.t-fav-ph { width: 14px; height: 14px; border-radius: 3px; background: var(--text-muted); flex-shrink: 0; }
+.t-fav-ph { width: 14px; height: 14px; border-radius: 3px; background: var(--text-muted); flex-shrink: 0; opacity: .5; }
 .tab.loading .t-fav, .tab.loading .t-fav-ph { display: none; }
-.tab.pinned .t-ttl, .tab.pinned .t-close { display: none; }
 
 .t-ttl {
-  flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  font-size: 12px; color: var(--text); opacity: .85;
+  flex: 1; font-size: 12px; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  opacity: .85;
 }
 .tab.active .t-ttl { color: var(--text-hi); font-weight: 500; opacity: 1; }
 
-.t-close {
+.t-x {
   width: 18px; height: 18px; border-radius: 50%; border: none;
   background: transparent; color: var(--text-muted); font-size: 13px;
   cursor: pointer; flex-shrink: 0; opacity: 0;
   display: flex; align-items: center; justify-content: center;
   transition: background .12s, color .12s, opacity .12s;
 }
-.tab:hover .t-close, .tab.active .t-close { opacity: 1; }
-.t-close:hover { background: rgba(224,82,82,.2); color: var(--danger); }
+.tab:hover .t-x, .tab.active .t-x { opacity: 1; }
+.t-x:hover { background: rgba(224,82,82,.22); color: var(--danger); }
 
-/* New tab button */
 #btn-new-tab {
-  width: 34px; height: 34px; border-radius: 50%; border: none;
+  width: 32px; height: 32px; border-radius: 50%; border: none;
   background: transparent; color: var(--text-muted); font-size: 20px;
-  cursor: pointer; flex-shrink: 0; align-self: center; margin-left: 4px;
+  cursor: pointer; flex-shrink: 0; align-self: center;
   display: flex; align-items: center; justify-content: center;
-  transition: background .14s, color .14s;
+  transition: background .13s, color .13s; margin-left: 2px;
 }
 #btn-new-tab:hover { background: rgba(255,255,255,.1); color: var(--text-hi); }
 
-/* ═══════════════════════════════════════════════════════════════
-   FIND BAR
-═══════════════════════════════════════════════════════════════ */
-#find-bar {
-  position: fixed; top: 110px; right: 14px; z-index: 9900;
+/* ═══════════════════════════════════════════════════════════
+   MORE DROPDOWN
+═══════════════════════════════════════════════════════════ */
+.dropdown-wrap { position: relative; flex-shrink: 0; }
+.dd-menu {
+  position: absolute; top: calc(100% + 6px); right: 0;
   background: var(--bg-toolbar);
-  border: 1px solid var(--accent);
-  border-top: none; border-radius: 0 0 10px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius); min-width: 180px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  z-index: 10000; display: none; overflow: hidden;
+}
+.dd-menu.open { display: block; }
+.dd-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; cursor: pointer; font-size: 12px;
+  color: var(--text);
+  transition: background .12s, color .12s;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.dd-item:last-child { border-bottom: none; }
+.dd-item:hover { background: rgba(255,255,255,.08); color: var(--text-hi); }
+.dd-item .bi { font-size: 14px; width: 16px; color: var(--accent); }
+.dd-sep { height: 1px; background: var(--border); margin: 3px 0; }
+
+/* ═══════════════════════════════════════════════════════════
+   FIND BAR  — position:fixed so it escapes the 110px shell
+═══════════════════════════════════════════════════════════ */
+#find-bar {
+  position: fixed; top: var(--bar-h); right: 16px; z-index: 9900;
+  background: var(--bg-toolbar);
+  border: 1px solid var(--accent); border-top: none;
+  border-radius: 0 0 10px 10px;
   padding: 8px 10px;
   display: flex; align-items: center; gap: 6px;
-  box-shadow: 0 4px 20px rgba(0,0,0,.4);
+  box-shadow: 0 6px 24px rgba(0,0,0,.5);
   transform: translateY(-110%); opacity: 0; pointer-events: none;
   transition: transform .22s ease, opacity .22s ease;
 }
@@ -424,638 +375,641 @@ html, body {
   transition: border-color .15s;
 }
 #find-inp:focus { border-color: var(--accent); }
-#find-count { font-size: 11px; color: var(--text-muted); min-width: 48px; text-align: center; }
+#find-count { font-size: 11px; color: var(--text-muted); min-width: 46px; text-align: center; }
 
-/* ═══════════════════════════════════════════════════════════════
-   SIDE PANELS  (Bookmarks / History / Downloads / Settings)
-   Slide in from the right as an off-canvas style overlay.
-═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   SIDE PANELS  — position:fixed, full height below bar
+   ROOT FIX: top = var(--bar-h), bottom = 0, so they fill
+   the BrowserView area visually (even though the BrowserView
+   is in the main process and drawn beneath the shell window).
+═══════════════════════════════════════════════════════════ */
 .side-panel {
-  position: fixed; top: 110px; right: 0; bottom: 0;
-  width: 340px; z-index: 9800;
+  position: fixed;
+  top: var(--bar-h); right: 0; bottom: 0;
+  width: var(--panel-w);
+  z-index: 9500;
   background: var(--bg-panel);
   border-left: 1px solid var(--border);
   display: flex; flex-direction: column;
-  transform: translateX(100%);
-  transition: transform .25s ease;
-  box-shadow: -4px 0 24px rgba(0,0,0,.4);
+  transform: translateX(110%);
+  transition: transform .26s cubic-bezier(.4,0,.2,1);
+  box-shadow: -6px 0 32px rgba(0,0,0,.5);
   pointer-events: none;
 }
-.side-panel.open { transform: translateX(0); pointer-events: all; }
+.side-panel.open {
+  transform: translateX(0);
+  pointer-events: all;
+}
 
-.panel-header {
+/* Panel header */
+.ph {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 13px 16px;
   background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
-.panel-title { font-size: 14px; font-weight: 600; color: var(--text-hi); }
-.panel-body { flex: 1; overflow-y: auto; padding: 8px 0; }
+.ph-title { font-size: 14px; font-weight: 600; color: var(--text-hi); display: flex; align-items: center; gap: 8px; }
+.ph-actions { display: flex; align-items: center; gap: 4px; }
 
-/* Panel list items */
-.p-item {
+/* Panel body */
+.pb { flex: 1; overflow-y: auto; padding: 4px 0; }
+
+/* List items inside panels */
+.pi {
   display: flex; align-items: center; gap: 10px;
-  padding: 8px 16px; cursor: pointer;
-  transition: background .13s;
+  padding: 9px 14px; cursor: pointer;
   border-bottom: 1px solid rgba(255,255,255,.04);
+  transition: background .12s;
 }
-.p-item:hover { background: rgba(255,255,255,.05); }
-.p-item-icon { font-size: 18px; flex-shrink: 0; width: 26px; text-align: center; }
-.p-item-text { flex: 1; min-width: 0; }
-.p-item-title { font-size: 12px; font-weight: 500; color: var(--text-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.p-item-url   { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.p-item-del { border: none; background: transparent; color: var(--text-muted); font-size: 14px; padding: 2px 6px; border-radius: 4px; cursor: pointer; flex-shrink: 0; }
-.p-item-del:hover { color: var(--danger); background: rgba(224,82,82,.15); }
+.pi:hover { background: rgba(255,255,255,.06); }
+.pi-ico { font-size: 18px; flex-shrink: 0; width: 24px; text-align: center; }
+.pi-body { flex: 1; min-width: 0; }
+.pi-title { font-size: 12px; font-weight: 500; color: var(--text-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pi-sub   { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+.pi-del {
+  border: none; background: transparent; color: var(--text-muted);
+  font-size: 14px; padding: 3px 6px; border-radius: 4px; cursor: pointer; flex-shrink: 0;
+  transition: color .12s, background .12s;
+}
+.pi-del:hover { color: var(--danger); background: rgba(224,82,82,.15); }
 
-.panel-empty { padding: 40px 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
-.panel-empty .bi { font-size: 40px; display: block; margin-bottom: 12px; }
+.panel-empty {
+  padding: 48px 20px; text-align: center;
+  color: var(--text-muted); font-size: 13px; line-height: 1.8;
+}
+.panel-empty .bi { font-size: 48px; display: block; margin-bottom: 12px; opacity: .4; }
 
-/* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    SETTINGS PANEL
-═══════════════════════════════════════════════════════════════ */
-.settings-section { padding: 12px 16px 4px; }
-.settings-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; color: var(--text-muted); margin-bottom: 8px; }
-
-/* Theme grid */
-.theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 4px 16px 12px; }
-.theme-swatch {
+═══════════════════════════════════════════════════════════ */
+.sec-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--text-muted);
+  padding: 12px 16px 6px; display: block;
+}
+.theme-grid {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: 8px; padding: 4px 14px 14px;
+}
+.t-swatch {
   display: flex; flex-direction: column; align-items: center; gap: 5px;
-  cursor: pointer; padding: 6px; border-radius: 8px;
+  cursor: pointer; padding: 8px 4px; border-radius: 10px;
   border: 2px solid transparent;
-  transition: border-color .15s, transform .12s;
+  transition: border-color .15s, transform .12s, background .12s;
 }
-.theme-swatch:hover { transform: scale(1.05); }
-.theme-swatch.active { border-color: var(--accent); }
-.swatch-circle {
+.t-swatch:hover { transform: scale(1.06); background: rgba(255,255,255,.05); }
+.t-swatch.active { border-color: var(--accent); }
+.t-circle {
   width: 36px; height: 36px; border-radius: 50%;
-  border: 2px solid rgba(255,255,255,.15);
+  border: 2px solid rgba(255,255,255,.2);
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
 }
-.swatch-name { font-size: 10px; color: var(--text-muted); text-align: center; }
+.t-name { font-size: 10px; color: var(--text-muted); text-align: center; line-height: 1.2; }
+.t-swatch.active .t-name { color: var(--accent); font-weight: 600; }
 
-.settings-row {
+/* Settings rows */
+.s-row {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 11px 16px; border-bottom: 1px solid rgba(255,255,255,.05);
 }
-.settings-row-label { font-size: 13px; color: var(--text); }
-.settings-row-sub   { font-size: 11px; color: var(--text-muted); }
+.s-row-left { flex: 1; }
+.s-row-label { font-size: 13px; color: var(--text-hi); }
+.s-row-sub   { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
 
-/* Bootstrap-style toggle switch */
-.form-switch .form-check-input { cursor: pointer; width: 2.5em; }
-.form-check-input:checked { background-color: var(--accent); border-color: var(--accent); }
+/* Toggle switch */
+.toggle-wrap { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+.toggle-wrap input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,.15); border-radius: 11px; cursor: pointer;
+  transition: background .2s;
+}
+.toggle-slider::before {
+  content: ''; position: absolute;
+  width: 16px; height: 16px; left: 3px; top: 3px;
+  background: white; border-radius: 50%;
+  transition: transform .2s;
+}
+.toggle-wrap input:checked + .toggle-slider { background: var(--accent); }
+.toggle-wrap input:checked + .toggle-slider::before { transform: translateX(18px); }
 
-/* ═══════════════════════════════════════════════════════════════
-   DOWNLOAD TRAY
-═══════════════════════════════════════════════════════════════ */
+/* Zoom preset buttons */
+.zoom-presets { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 14px 14px; }
+.zoom-btn {
+  border: 1px solid var(--border); background: var(--bg-input);
+  color: var(--text); border-radius: 6px; padding: 4px 10px;
+  font-size: 11px; cursor: pointer; transition: background .13s, color .13s, border-color .13s;
+}
+.zoom-btn:hover { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+
+/* About section */
+.about-box {
+  margin: 8px 14px 16px;
+  background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px;
+}
+.about-title { font-size: 14px; font-weight: 700; color: var(--text-hi); }
+.about-sub   { font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.6; }
+.about-version {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--accent-dim); color: var(--accent);
+  border-radius: 4px; font-size: 10px; font-weight: 600;
+  padding: 2px 8px; margin-top: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DOWNLOAD TRAY  — fixed bottom-right
+═══════════════════════════════════════════════════════════ */
 #dl-tray {
   position: fixed; bottom: 14px; right: 14px;
-  width: 320px; z-index: 9999;
+  width: 310px; z-index: 9800;
   display: flex; flex-direction: column; gap: 8px;
   pointer-events: none;
 }
 .dl-card {
   background: var(--bg-toolbar);
   border: 1px solid var(--border);
-  border-radius: 10px; padding: 12px 14px 10px;
+  border-radius: 10px; padding: 12px 13px 10px;
   pointer-events: all;
   animation: slideUp .22s ease;
-  box-shadow: 0 4px 20px rgba(0,0,0,.45);
+  box-shadow: 0 4px 24px rgba(0,0,0,.5);
 }
 @keyframes slideUp { from { transform: translateY(16px); opacity: 0; } }
-
-.dl-row1 { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.dl-ico   { font-size: 22px; flex-shrink: 0; }
-.dl-name  { flex: 1; font-size: 12px; font-weight: 500; color: var(--text-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dl-x     { border: none; background: transparent; font-size: 15px; color: var(--text-muted); cursor: pointer; padding: 2px 5px; border-radius: 4px; }
-.dl-x:hover { color: var(--danger); background: rgba(224,82,82,.15); }
-
-.dl-track { height: 5px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; }
-.dl-bar   { height: 100%; background: var(--accent); border-radius: 3px; width: 0; transition: width .3s; }
+.dl-r1 { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.dl-ico { font-size: 20px; flex-shrink: 0; }
+.dl-name { flex: 1; font-size: 12px; font-weight: 500; color: var(--text-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dl-dismiss { border: none; background: transparent; color: var(--text-muted); font-size: 15px; cursor: pointer; padding: 2px 4px; border-radius: 4px; flex-shrink: 0; }
+.dl-dismiss:hover { color: var(--danger); background: rgba(224,82,82,.15); }
+.dl-track { height: 4px; background: rgba(255,255,255,.08); border-radius: 2px; overflow: hidden; margin-bottom: 6px; }
+.dl-bar { height: 100%; background: var(--accent); border-radius: 2px; width: 0; transition: width .3s; }
 .dl-bar.indet { width: 35%; animation: indet 1.1s ease-in-out infinite alternate; }
 @keyframes indet { to { margin-left: 65%; } }
-
-.dl-stat  { font-size: 11px; color: var(--text-muted); margin-top: 5px; }
-.dl-acts  { display: none; gap: 6px; margin-top: 8px; }
-.dl-card.done .dl-acts { display: flex; }
+.dl-stat { font-size: 11px; color: var(--text-muted); }
+.dl-btns { display: none; gap: 6px; margin-top: 8px; }
+.dl-card.done .dl-btns { display: flex; }
 .dl-card.done .dl-bar { background: var(--success); width: 100% !important; }
-.dl-card.fail .dl-bar { background: var(--danger);  width: 100% !important; }
-.dl-card.fail .dl-acts { display: flex; }
+.dl-card.fail .dl-bar { background: var(--danger); width: 100% !important; }
+.dl-card.fail .dl-btns { display: flex; }
+.dl-action {
+  flex: 1; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--bg-input); color: var(--text); font-size: 11px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  transition: background .13s, color .13s;
+}
+.dl-action:hover { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.dl-action.primary { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.dl-action.primary:hover { background: var(--accent); color: #fff; }
 
-/* ═══════════════════════════════════════════════════════════════
-   TOAST
-═══════════════════════════════════════════════════════════════ */
-#toast-wrap {
-  position: fixed; top: 120px; right: 16px;
+/* ═══════════════════════════════════════════════════════════
+   TOASTS
+═══════════════════════════════════════════════════════════ */
+#toast-stack {
+  position: fixed; top: calc(var(--bar-h) + 10px); right: 14px;
   display: flex; flex-direction: column; gap: 6px;
-  z-index: 9999; pointer-events: none;
+  z-index: 10000; pointer-events: none; max-width: 300px;
 }
 .toast-item {
+  display: flex; align-items: center; gap: 9px;
   background: var(--bg-toolbar);
   border: 1px solid var(--border);
   border-radius: 8px; padding: 10px 14px;
   font-size: 12px; color: var(--text-hi);
-  box-shadow: 0 4px 16px rgba(0,0,0,.4);
-  animation: toastIn .2s ease;
-  display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.5);
   pointer-events: all;
-  max-width: 280px;
+  animation: toastIn .2s ease;
 }
-.toast-item.warning { border-left: 3px solid var(--warning); }
-.toast-item.danger  { border-left: 3px solid var(--danger);  }
+@keyframes toastIn { from { transform: translateX(20px); opacity: 0; } }
 .toast-item.success { border-left: 3px solid var(--success); }
-.toast-item.info    { border-left: 3px solid var(--accent);  }
-@keyframes toastIn  { from { transform: translateX(20px); opacity: 0; } }
-
-/* ═══════════════════════════════════════════════════════════════
-   MISCELLANEOUS
-═══════════════════════════════════════════════════════════════ */
-.badge-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--danger); flex-shrink: 0;
-}
-
-/* Dropdown triggered from toolbar buttons */
-.tbtn-dropdown { position: relative; }
-.tbtn-menu {
-  position: absolute; top: calc(100% + 6px); right: 0;
-  background: var(--bg-toolbar);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  min-width: 160px; z-index: 9000;
-  box-shadow: 0 8px 24px rgba(0,0,0,.4);
-  display: none;
-  overflow: hidden;
-}
-.tbtn-menu.show { display: block; }
-.menu-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 9px 14px; cursor: pointer; font-size: 12px; color: var(--text);
-  border-bottom: 1px solid rgba(255,255,255,.04);
-  transition: background .13s;
-}
-.menu-item:hover { background: rgba(255,255,255,.08); color: var(--text-hi); }
-.menu-item .bi   { font-size: 15px; width: 18px; }
-.menu-sep { height: 1px; background: var(--border); margin: 4px 0; }
+.toast-item.warning { border-left: 3px solid var(--warn); }
+.toast-item.danger  { border-left: 3px solid var(--danger); }
+.toast-item.info    { border-left: 3px solid var(--accent); }
+.toast-item .bi { font-size: 15px; flex-shrink: 0; }
+.toast-item.success .bi { color: var(--success); }
+.toast-item.warning .bi { color: var(--warn); }
+.toast-item.danger  .bi { color: var(--danger); }
+.toast-item.info    .bi { color: var(--accent); }
 </style>
 </head>
-
 <body>
+
+<!-- ═══════════════ SHELL BAR (110px) ═══════════════ -->
 <div id="shell">
 
-  <!-- ═══════════════════ ROW 1: TOOLBAR ═══════════════════ -->
+  <!-- Row 1: Toolbar -->
   <div id="toolbar">
 
     <!-- Brand -->
-    <div id="brand">
-      <div id="brand-logo"><i class="bi bi-shop"></i></div>
+    <div id="brand" style="flex-shrink:0;display:flex;align-items:center;gap:7px;margin-right:4px;">
+      <div id="brand-logo"><i class="bi bi-shop-window"></i></div>
       <span id="brand-name">Smart Store</span>
     </div>
 
     <div class="vdiv"></div>
 
     <!-- Nav buttons -->
-    <button class="tbtn icon-only" id="btn-back"    title="Back  Alt+←"    onclick="WMS.back()"   disabled><i class="bi bi-arrow-left"></i></button>
-    <button class="tbtn icon-only" id="btn-fwd"     title="Forward  Alt+→"  onclick="WMS.forward()" disabled><i class="bi bi-arrow-right"></i></button>
-    <button class="tbtn icon-only" id="btn-reload"  title="Reload  Ctrl+R"  id="btn-reload"><i class="bi bi-arrow-clockwise"></i></button>
-    <button class="tbtn icon-only" id="btn-home"    title="Home"            onclick="WMS.home()"><i class="bi bi-house"></i></button>
+    <button class="tbtn sq" id="btn-back"   title="Back  (Alt+←)"   onclick="WMS.back()"    disabled><i class="bi bi-arrow-left"></i></button>
+    <button class="tbtn sq" id="btn-fwd"    title="Forward  (Alt+→)" onclick="WMS.forward()" disabled><i class="bi bi-arrow-right"></i></button>
+    <button class="tbtn sq" id="btn-reload" title="Reload  (Ctrl+R)" onclick="WMS.reload()"><i class="bi bi-arrow-clockwise"></i></button>
+    <button class="tbtn sq" id="btn-home"   title="Home"             onclick="WMS.home()"><i class="bi bi-house-door"></i></button>
 
     <!-- URL bar -->
-    <div id="url-bar">
-      <i class="bi bi-lock-fill" id="url-icon" title="Secure"></i>
+    <div id="url-wrap">
+      <i class="bi bi-lock-fill" id="url-icon" title="Secure (HTTPS)" style="color:var(--success)"></i>
       <input id="url-input" type="text" spellcheck="false"
-             placeholder="https://arman.ahrtechdiv.com"
-             onkeydown="urlKeydown(event)"/>
-      <button id="url-go" title="Go" onclick="navToURL()"><i class="bi bi-arrow-right-short"></i></button>
+             placeholder="arman.ahrtechdiv.com"
+             onkeydown="urlKey(event)" onfocus="this.select()"/>
+      <button id="url-go" onclick="doNav()" title="Navigate"><i class="bi bi-arrow-right-short"></i></button>
     </div>
 
     <div class="vdiv"></div>
 
-    <!-- Print -->
-    <button class="tbtn" title="Print  Ctrl+P" onclick="WMS.print()">
-      <i class="bi bi-printer"></i><span class="d-none d-xl-inline">Print</span>
-    </button>
-
-    <!-- Save PDF -->
-    <button class="tbtn" title="Save as PDF" onclick="WMS.savePDF()">
-      <i class="bi bi-file-earmark-pdf"></i><span class="d-none d-xl-inline">PDF</span>
-    </button>
-
-    <!-- Screenshot -->
-    <button class="tbtn icon-only" title="Screenshot" onclick="WMS.screenshot()">
-      <i class="bi bi-camera"></i>
-    </button>
+    <!-- Print & PDF -->
+    <button class="tbtn" id="btn-print" title="Print  (Ctrl+P)" onclick="WMS.print()"><i class="bi bi-printer-fill"></i><span class="lbl"> Print</span></button>
+    <button class="tbtn" id="btn-pdf"   title="Save as PDF"     onclick="WMS.savePDF()"><i class="bi bi-file-earmark-pdf-fill"></i><span class="lbl"> PDF</span></button>
+    <button class="tbtn sq" id="btn-cam"  title="Screenshot"    onclick="WMS.screenshot()"><i class="bi bi-camera-fill"></i></button>
 
     <div class="vdiv"></div>
 
     <!-- Zoom -->
     <div id="zoom-pill">
-      <button class="tbtn icon-only" title="Zoom Out  Ctrl+-" onclick="WMS.zoomOut()"><i class="bi bi-dash"></i></button>
+      <button class="tbtn sq" title="Zoom Out  (Ctrl+-)" onclick="WMS.zoomOut()"><i class="bi bi-dash-lg"></i></button>
       <span id="zoom-val">100%</span>
-      <button class="tbtn icon-only" title="Zoom In  Ctrl++"  onclick="WMS.zoomIn()"><i class="bi bi-plus"></i></button>
+      <button class="tbtn sq" title="Zoom In  (Ctrl++)"  onclick="WMS.zoomIn()"><i class="bi bi-plus-lg"></i></button>
     </div>
 
     <div class="vdiv"></div>
 
-    <!-- Find -->
-    <button class="tbtn icon-only" id="btn-find" title="Find  Ctrl+F" onclick="toggleFind()">
-      <i class="bi bi-search"></i>
-    </button>
+    <!-- Panel toggles -->
+    <button class="tbtn sq" id="btn-find"     title="Find in Page  (Ctrl+F)"  onclick="toggleFind()"><i class="bi bi-search"></i></button>
+    <button class="tbtn sq" id="btn-dl-panel" title="Downloads"                onclick="togglePanel('p-dl')"><i class="bi bi-download"></i></button>
+    <button class="tbtn sq" id="btn-bm-panel" title="Bookmarks"                onclick="togglePanel('p-bm')"><i class="bi bi-bookmark-star-fill"></i></button>
+    <button class="tbtn sq" id="btn-bm-add"   title="Bookmark This Page"       onclick="addBookmark()"><i class="bi bi-bookmark-plus"></i></button>
+    <button class="tbtn sq" id="btn-hist"     title="History"                  onclick="togglePanel('p-hist')"><i class="bi bi-clock-history"></i></button>
+    <button class="tbtn sq" id="btn-settings" title="Settings & Themes"        onclick="togglePanel('p-settings')"><i class="bi bi-gear-fill"></i></button>
 
-    <!-- Downloads panel -->
-    <button class="tbtn icon-only" title="Downloads" onclick="togglePanel('panel-dl')">
-      <i class="bi bi-download"></i>
-    </button>
-
-    <!-- Bookmarks panel -->
-    <button class="tbtn icon-only" title="Bookmarks" onclick="togglePanel('panel-bm')">
-      <i class="bi bi-bookmark-star"></i>
-    </button>
-
-    <!-- Add bookmark -->
-    <button class="tbtn icon-only" id="btn-bm-add" title="Bookmark This Page" onclick="addBookmark()">
-      <i class="bi bi-bookmark-plus"></i>
-    </button>
-
-    <!-- History panel -->
-    <button class="tbtn icon-only" title="History" onclick="togglePanel('panel-hist')">
-      <i class="bi bi-clock-history"></i>
-    </button>
-
-    <!-- Settings panel -->
-    <button class="tbtn icon-only" title="Settings & Themes" onclick="togglePanel('panel-settings')">
-      <i class="bi bi-gear"></i>
-    </button>
-
-    <!-- More menu -->
-    <div class="tbtn-dropdown" id="more-wrap">
-      <button class="tbtn icon-only" title="More" onclick="toggleMenu('more-menu')">
-        <i class="bi bi-three-dots-vertical"></i>
-      </button>
-      <div class="tbtn-menu" id="more-menu">
-        <div class="menu-item" onclick="WMS.openTab(null)"><i class="bi bi-plus-circle"></i> New Tab</div>
-        <div class="menu-item" onclick="duplicateCurTab()"><i class="bi bi-copy"></i> Duplicate Tab</div>
-        <div class="menu-sep"></div>
-        <div class="menu-item" onclick="WMS.hardReload()"><i class="bi bi-arrow-repeat"></i> Hard Reload</div>
-        <div class="menu-item" onclick="WMS.stop()"><i class="bi bi-x-circle"></i> Stop Loading</div>
-        <div class="menu-sep"></div>
-        <div class="menu-item" onclick="WMS.openDownloads()"><i class="bi bi-folder2-open"></i> Downloads Folder</div>
-        <div class="menu-item" onclick="WMS.openDevTools()"><i class="bi bi-code-slash"></i> Developer Tools</div>
-        <div class="menu-sep"></div>
-        <div class="menu-item" onclick="WMS.quit()"><i class="bi bi-power"></i> Quit</div>
+    <!-- More dropdown -->
+    <div class="dropdown-wrap" id="more-wrap">
+      <button class="tbtn sq" title="More options" onclick="toggleDD()"><i class="bi bi-three-dots-vertical"></i></button>
+      <div class="dd-menu" id="more-dd">
+        <div class="dd-item" onclick="WMS.openTab(null);closeDD()"><i class="bi bi-plus-circle-fill"></i>New Tab</div>
+        <div class="dd-item" onclick="dupTab();closeDD()"><i class="bi bi-copy"></i>Duplicate Tab</div>
+        <div class="dd-sep"></div>
+        <div class="dd-item" onclick="WMS.hardReload();closeDD()"><i class="bi bi-arrow-repeat"></i>Hard Reload</div>
+        <div class="dd-item" onclick="WMS.stop();closeDD()"><i class="bi bi-x-circle-fill"></i>Stop Loading</div>
+        <div class="dd-sep"></div>
+        <div class="dd-item" onclick="WMS.openDownloads();closeDD()"><i class="bi bi-folder2-open"></i>Open Downloads</div>
+        <div class="dd-item" onclick="WMS.openDevTools();closeDD()"><i class="bi bi-code-slash"></i>Developer Tools</div>
+        <div class="dd-sep"></div>
+        <div class="dd-item" style="color:var(--danger);" onclick="WMS.quit()"><i class="bi bi-power" style="color:var(--danger);"></i>Quit App</div>
       </div>
     </div>
 
   </div><!-- /toolbar -->
 
-  <!-- ═══════════════════ ROW 2: TAB STRIP ═══════════════════ -->
+  <!-- Row 2: Tab strip -->
   <div id="tabrow">
-    <!-- tabs injected here -->
-    <button id="btn-new-tab" title="New Tab  Ctrl+T" onclick="WMS.openTab(null)">
+    <button id="btn-new-tab" title="New Tab  (Ctrl+T)" onclick="WMS.openTab(null)">
       <i class="bi bi-plus"></i>
     </button>
   </div>
 
 </div><!-- /shell -->
 
-<!-- ═══════════════════ FIND BAR ═══════════════════ -->
+
+<!-- ═══════════════ FIND BAR ═══════════════ -->
 <div id="find-bar">
-  <i class="bi bi-search" style="color:var(--text-muted)"></i>
+  <i class="bi bi-search" style="color:var(--text-muted);font-size:13px;"></i>
   <input id="find-inp" type="text" placeholder="Find in page…"
-         oninput="onFindInput()" onkeydown="onFindKey(event)"/>
+         oninput="doFind()" onkeydown="findKey(event)"/>
   <span id="find-count"></span>
-  <button class="tbtn icon-only" style="width:28px;height:28px;" title="Prev  Shift+Enter"
-          onclick="WMS.findPrev(document.getElementById('find-inp').value)">
-    <i class="bi bi-chevron-up"></i>
-  </button>
-  <button class="tbtn icon-only" style="width:28px;height:28px;" title="Next  Enter"
-          onclick="WMS.findNext(document.getElementById('find-inp').value)">
-    <i class="bi bi-chevron-down"></i>
-  </button>
-  <button class="tbtn icon-only" style="width:28px;height:28px;color:var(--danger)" title="Close  Esc"
-          onclick="closeFind()">
-    <i class="bi bi-x-lg"></i>
-  </button>
+  <button class="tbtn sq" style="width:28px;height:28px;" title="Previous (Shift+Enter)"
+          onclick="WMS.findPrev(q())"><i class="bi bi-chevron-up"></i></button>
+  <button class="tbtn sq" style="width:28px;height:28px;" title="Next (Enter)"
+          onclick="WMS.findNext(q())"><i class="bi bi-chevron-down"></i></button>
+  <button class="tbtn sq" style="width:28px;height:28px;color:var(--danger);" title="Close (Esc)"
+          onclick="closeFind()"><i class="bi bi-x-lg"></i></button>
 </div>
 
-<!-- ═══════════════════ SIDE PANELS ═══════════════════ -->
 
-<!-- Downloads panel -->
-<div class="side-panel" id="panel-dl">
-  <div class="panel-header">
-    <span class="panel-title"><i class="bi bi-download me-2"></i>Downloads</span>
-    <div class="d-flex gap-2">
-      <button class="tbtn" style="font-size:11px;padding:3px 8px;" onclick="WMS.openDownloads()"><i class="bi bi-folder2-open"></i> Open Folder</button>
-      <button class="tbtn icon-only" style="width:28px;height:28px;" onclick="closePanel('panel-dl')"><i class="bi bi-x-lg"></i></button>
+<!-- ═══════════════ SIDE PANELS ═══════════════ -->
+
+<!-- Downloads Panel -->
+<div class="side-panel" id="p-dl">
+  <div class="ph">
+    <span class="ph-title"><i class="bi bi-download" style="color:var(--accent)"></i>Downloads</span>
+    <div class="ph-actions">
+      <button class="tbtn" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);"
+              onclick="WMS.openDownloads()"><i class="bi bi-folder2-open"></i> Open Folder</button>
+      <button class="tbtn sq" style="width:28px;height:28px;" onclick="closePanel('p-dl')"><i class="bi bi-x-lg"></i></button>
     </div>
   </div>
-  <div class="panel-body" id="dl-list">
-    <div class="panel-empty"><i class="bi bi-download"></i>No downloads yet</div>
+  <div class="pb" id="dl-panel-list">
+    <div class="panel-empty"><i class="bi bi-download"></i>No downloads yet.<br>Files you download will appear here.</div>
   </div>
 </div>
 
-<!-- Bookmarks panel -->
-<div class="side-panel" id="panel-bm">
-  <div class="panel-header">
-    <span class="panel-title"><i class="bi bi-bookmark-star me-2"></i>Bookmarks</span>
-    <button class="tbtn icon-only" style="width:28px;height:28px;" onclick="closePanel('panel-bm')"><i class="bi bi-x-lg"></i></button>
+<!-- Bookmarks Panel -->
+<div class="side-panel" id="p-bm">
+  <div class="ph">
+    <span class="ph-title"><i class="bi bi-bookmark-star-fill" style="color:var(--accent)"></i>Bookmarks</span>
+    <button class="tbtn sq" style="width:28px;height:28px;" onclick="closePanel('p-bm')"><i class="bi bi-x-lg"></i></button>
   </div>
-  <div class="panel-body" id="bm-list">
-    <div class="panel-empty"><i class="bi bi-bookmark"></i>No bookmarks yet.<br>Click <i class="bi bi-bookmark-plus"></i> to add.</div>
+  <div class="pb" id="bm-list">
+    <div class="panel-empty"><i class="bi bi-bookmark-plus"></i>No bookmarks yet.<br>Click <strong>⊕</strong> in the toolbar to bookmark the current page.</div>
   </div>
 </div>
 
-<!-- History panel -->
-<div class="side-panel" id="panel-hist">
-  <div class="panel-header">
-    <span class="panel-title"><i class="bi bi-clock-history me-2"></i>History</span>
-    <div class="d-flex gap-2">
-      <button class="tbtn" style="font-size:11px;padding:3px 8px;" onclick="clearHistory()"><i class="bi bi-trash3"></i> Clear</button>
-      <button class="tbtn icon-only" style="width:28px;height:28px;" onclick="closePanel('panel-hist')"><i class="bi bi-x-lg"></i></button>
+<!-- History Panel -->
+<div class="side-panel" id="p-hist">
+  <div class="ph">
+    <span class="ph-title"><i class="bi bi-clock-history" style="color:var(--accent)"></i>History</span>
+    <div class="ph-actions">
+      <button class="tbtn" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);"
+              onclick="clearHist()"><i class="bi bi-trash3"></i> Clear All</button>
+      <button class="tbtn sq" style="width:28px;height:28px;" onclick="closePanel('p-hist')"><i class="bi bi-x-lg"></i></button>
     </div>
   </div>
-  <div class="panel-body" id="hist-list">
-    <div class="panel-empty"><i class="bi bi-clock-history"></i>No history yet</div>
+  <div class="pb" id="hist-list">
+    <div class="panel-empty"><i class="bi bi-clock-history"></i>No history yet.<br>Visited pages will appear here.</div>
   </div>
 </div>
 
-<!-- Settings panel -->
-<div class="side-panel" id="panel-settings">
-  <div class="panel-header">
-    <span class="panel-title"><i class="bi bi-gear me-2"></i>Settings</span>
-    <button class="tbtn icon-only" style="width:28px;height:28px;" onclick="closePanel('panel-settings')"><i class="bi bi-x-lg"></i></button>
+<!-- Settings Panel -->
+<div class="side-panel" id="p-settings">
+  <div class="ph">
+    <span class="ph-title"><i class="bi bi-gear-fill" style="color:var(--accent)"></i>Settings</span>
+    <button class="tbtn sq" style="width:28px;height:28px;" onclick="closePanel('p-settings')"><i class="bi bi-x-lg"></i></button>
   </div>
-  <div class="panel-body">
+  <div class="pb">
 
-    <!-- Theme chooser -->
-    <div class="settings-section">
-      <div class="settings-label"><i class="bi bi-palette2 me-1"></i>Theme</div>
-    </div>
+    <!-- Theme -->
+    <span class="sec-label"><i class="bi bi-palette2"></i> Theme</span>
     <div class="theme-grid" id="theme-grid"></div>
 
     <!-- Zoom presets -->
-    <div class="settings-section mt-2">
-      <div class="settings-label"><i class="bi bi-zoom-in me-1"></i>Zoom Presets</div>
-    </div>
-    <div class="d-flex flex-wrap gap-2 px-3 pb-3">
-      ${[50,75,90,100,110,125,150,175,200].map(z =>
-        `<button class="tbtn" style="font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);"
-                 onclick="WMS.zoomSet(${z})">${z}%</button>`
-      ).join('')}
+    <span class="sec-label"><i class="bi bi-zoom-in"></i> Zoom Presets</span>
+    <div class="zoom-presets" id="zoom-presets"></div>
+
+    <!-- Options -->
+    <span class="sec-label"><i class="bi bi-toggles"></i> Options</span>
+
+    <div class="s-row">
+      <div class="s-row-left">
+        <div class="s-row-label">Show Button Labels</div>
+        <div class="s-row-sub">Display text on Print & PDF buttons</div>
+      </div>
+      <label class="toggle-wrap"><input type="checkbox" id="tog-labels" checked onchange="applyOpts()"/><span class="toggle-slider"></span></label>
     </div>
 
-    <!-- Settings toggles -->
-    <div class="settings-section mt-1">
-      <div class="settings-label"><i class="bi bi-toggles me-1"></i>Options</div>
+    <div class="s-row">
+      <div class="s-row-left">
+        <div class="s-row-label">Compact Tabs</div>
+        <div class="s-row-sub">Reduce tab strip height</div>
+      </div>
+      <label class="toggle-wrap"><input type="checkbox" id="tog-compact" onchange="applyOpts()"/><span class="toggle-slider"></span></label>
     </div>
 
-    <div class="settings-row">
-      <div><div class="settings-row-label">Show URL Bar Icon</div><div class="settings-row-sub">Lock/globe icon in address bar</div></div>
-      <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="tog-urlicon" checked onchange="applySettings()"/></div>
-    </div>
-    <div class="settings-row">
-      <div><div class="settings-row-label">Compact Tabs</div><div class="settings-row-sub">Smaller tab strip</div></div>
-      <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="tog-compact" onchange="applySettings()"/></div>
-    </div>
-    <div class="settings-row">
-      <div><div class="settings-row-label">Show Labels on Toolbar</div><div class="settings-row-sub">Print / PDF text labels</div></div>
-      <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="tog-labels" onchange="applySettings()"/></div>
+    <div class="s-row">
+      <div class="s-row-left">
+        <div class="s-row-label">Show Security Icon</div>
+        <div class="s-row-sub">Lock / globe in address bar</div>
+      </div>
+      <label class="toggle-wrap"><input type="checkbox" id="tog-urlicon" checked onchange="applyOpts()"/><span class="toggle-slider"></span></label>
     </div>
 
     <!-- About -->
-    <div class="settings-section mt-3">
-      <div class="settings-label"><i class="bi bi-info-circle me-1"></i>About</div>
-    </div>
-    <div class="px-3 pb-4">
-      <div style="font-size:13px;color:var(--text-hi);font-weight:600;">Smart Store WMS v3.0</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Emaar Al Bader Warehouse Management System<br>arman.ahrtechdiv.com</div>
-      <button class="tbtn mt-3 w-100" style="border:1px solid var(--border);border-radius:var(--radius);" onclick="closePanel('panel-settings')">
-        <i class="bi bi-check2"></i> Done
-      </button>
+    <span class="sec-label" style="margin-top:8px;"><i class="bi bi-info-circle"></i> About</span>
+    <div class="about-box">
+      <div class="about-title">Smart Store WMS</div>
+      <div class="about-sub">Emaar Al Bader Warehouse Management System<br>arman.ahrtechdiv.com</div>
+      <div class="about-version"><i class="bi bi-tag-fill"></i> Version 3.0.0</div>
     </div>
 
   </div>
 </div><!-- /settings -->
 
-<!-- ═══════════════════ DOWNLOAD TRAY ═══════════════════ -->
+
+<!-- ═══════════════ DOWNLOAD TRAY (floating cards) ═══════════════ -->
 <div id="dl-tray"></div>
 
-<!-- ═══════════════════ TOAST CONTAINER ═══════════════════ -->
-<div id="toast-wrap"></div>
+<!-- ═══════════════ TOAST STACK ═══════════════ -->
+<div id="toast-stack"></div>
 
-<!-- Bootstrap 5 JS (for collapse/dropdown utilities if needed) -->
+
+<!-- Bootstrap 5 JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
 'use strict';
-
-/* ════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    THEME SYSTEM
-════════════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════ */
 const THEMES = [
-  { id: 'dark-blue', name: 'Deep Blue',   bg: '#0d1554', accent: '#3b9ef5' },
-  { id: 'midnight',  name: 'Midnight',    bg: '#0d0d0d', accent: '#0078d4' },
-  { id: 'emerald',   name: 'Emerald',     bg: '#052e16', accent: '#10b981' },
-  { id: 'purple',    name: 'Purple',      bg: '#1e1035', accent: '#a78bfa' },
-  { id: 'crimson',   name: 'Crimson',     bg: '#1c0a0a', accent: '#ef4444' },
-  { id: 'ocean',     name: 'Ocean',       bg: '#042f2e', accent: '#22d3ee' },
-  { id: 'light',     name: 'Light',       bg: '#f1f5f9', accent: '#3b82f6' },
-  { id: 'amber',     name: 'Amber Gold',  bg: '#1c1200', accent: '#f59e0b' },
+  { id:'dark-blue', name:'Deep Blue',   bg:'#0d1554', ac:'#3b9ef5' },
+  { id:'midnight',  name:'Midnight',    bg:'#0d0d0d', ac:'#0078d4' },
+  { id:'emerald',   name:'Emerald',     bg:'#052e16', ac:'#10b981' },
+  { id:'purple',    name:'Purple',      bg:'#1e1035', ac:'#a78bfa' },
+  { id:'crimson',   name:'Crimson',     bg:'#1c0a0a', ac:'#ef4444' },
+  { id:'ocean',     name:'Ocean',       bg:'#042f2e', ac:'#22d3ee' },
+  { id:'light',     name:'Light',       bg:'#f1f5f9', ac:'#3b82f6' },
+  { id:'amber',     name:'Amber',       bg:'#1c1200', ac:'#f59e0b' },
 ];
-
-let currentTheme = localStorage.getItem('ss-theme') || 'dark-blue';
+let curTheme = localStorage.getItem('ss-theme') || 'dark-blue';
 
 function buildThemeGrid() {
-  const grid = document.getElementById('theme-grid');
-  grid.innerHTML = '';
+  const g = document.getElementById('theme-grid');
+  g.innerHTML = '';
   THEMES.forEach(t => {
-    const sw = document.createElement('div');
-    sw.className = 'theme-swatch' + (t.id === currentTheme ? ' active' : '');
-    sw.dataset.id = t.id;
-    sw.onclick    = () => setTheme(t.id);
-    sw.innerHTML  = `
-      <div class="swatch-circle" style="background:linear-gradient(135deg,${t.bg} 50%,${t.accent} 50%)"></div>
-      <span class="swatch-name">${t.name}</span>`;
-    grid.appendChild(sw);
+    const el = document.createElement('div');
+    el.className = 't-swatch' + (t.id === curTheme ? ' active' : '');
+    el.dataset.tid = t.id;
+    el.innerHTML = `
+      <div class="t-circle" style="background:linear-gradient(135deg,${t.bg} 50%,${t.ac} 50%)"></div>
+      <div class="t-name">${t.name}</div>`;
+    el.onclick = () => setTheme(t.id);
+    g.appendChild(el);
   });
 }
 
 function setTheme(id) {
-  currentTheme = id;
+  curTheme = id;
   document.documentElement.setAttribute('data-theme', id);
   localStorage.setItem('ss-theme', id);
-  document.querySelectorAll('.theme-swatch').forEach(s => {
-    s.classList.toggle('active', s.dataset.id === id);
+  document.querySelectorAll('.t-swatch').forEach(s => {
+    s.classList.toggle('active', s.dataset.tid === id);
   });
-  toast(`🎨 Theme: ${THEMES.find(t=>t.id===id)?.name}`, 'info');
+  toast('🎨 Theme changed to ' + (THEMES.find(t=>t.id===id)?.name||id), 'info');
 }
 
-// Apply saved theme on load
-document.documentElement.setAttribute('data-theme', currentTheme);
+// Apply saved theme immediately
+document.documentElement.setAttribute('data-theme', curTheme);
 
-/* ════════════════════════════════════════════════════════════
-   SETTINGS
-════════════════════════════════════════════════════════════ */
-function applySettings() {
-  const labels  = document.getElementById('tog-labels')?.checked;
-  const compact = document.getElementById('tog-compact')?.checked;
-  const urlicon = document.getElementById('tog-urlicon')?.checked;
+/* ═══════════════════════════════════════════════════════════
+   ZOOM PRESETS
+═══════════════════════════════════════════════════════════ */
+function buildZoomPresets() {
+  const wrap = document.getElementById('zoom-presets');
+  [50,75,90,100,110,125,150,175,200].forEach(z => {
+    const b = document.createElement('button');
+    b.className = 'zoom-btn';
+    b.textContent = z + '%';
+    b.onclick = () => { WMS.zoomSet(z); toast(`Zoom set to ${z}%`, 'info'); };
+    wrap.appendChild(b);
+  });
+}
 
-  // Label visibility on toolbar buttons
-  document.querySelectorAll('#toolbar .tbtn span').forEach(el => {
-    el.style.display = labels ? '' : 'none';
+/* ═══════════════════════════════════════════════════════════
+   OPTIONS
+═══════════════════════════════════════════════════════════ */
+function applyOpts() {
+  // Labels on Print/PDF buttons
+  const showLabels = document.getElementById('tog-labels').checked;
+  document.querySelectorAll('#toolbar .lbl').forEach(el => {
+    el.style.display = showLabels ? '' : 'none';
   });
 
-  // Compact tab strip
-  document.getElementById('tabrow').style.height = compact ? '44px' : '58px';
+  // Compact tabs
+  const compact = document.getElementById('tog-compact').checked;
+  document.getElementById('tabrow').style.setProperty('height', compact ? '44px' : '58px');
   document.querySelectorAll('.tab').forEach(t => {
     t.style.height = compact ? '36px' : '';
+    if (t.classList.contains('active')) t.style.height = compact ? '42px' : '';
   });
+  // Also update --tabrow-h CSS var so panels start at the right place
+  document.documentElement.style.setProperty('--tabrow-h', compact ? '44px' : '58px');
+  document.documentElement.style.setProperty('--bar-h', compact ? '96px' : '110px');
 
-  // URL icon
-  const uiEl = document.getElementById('url-icon');
-  if (uiEl) uiEl.style.display = urlicon ? '' : 'none';
+  // URL security icon
+  const showIcon = document.getElementById('tog-urlicon').checked;
+  const ico = document.getElementById('url-icon');
+  if (ico) ico.style.display = showIcon ? '' : 'none';
+
+  // Save to localStorage
+  localStorage.setItem('ss-opts', JSON.stringify({ showLabels, compact, showIcon }));
 }
 
-/* ════════════════════════════════════════════════════════════
-   STATE
-════════════════════════════════════════════════════════════ */
-const tabMap  = new Map();
-let   activeId = null;
-const dlCards  = new Map();
-let   bmCache  = [];
-let   histCache = [];
+function loadOpts() {
+  try {
+    const o = JSON.parse(localStorage.getItem('ss-opts') || '{}');
+    if (o.showLabels !== undefined) document.getElementById('tog-labels').checked = o.showLabels;
+    if (o.compact    !== undefined) document.getElementById('tog-compact').checked = o.compact;
+    if (o.showIcon   !== undefined) document.getElementById('tog-urlicon').checked = o.showIcon;
+    applyOpts();
+  } catch {}
+}
 
-/* ════════════════════════════════════════════════════════════
-   IPC  —  main → renderer
-════════════════════════════════════════════════════════════ */
-WMS.on.tabOpened(({ id, title, url, pinned }) => {
-  tabMap.set(id, { id, title, url, loading: true, favicon: null, canBack: false, canFwd: false, pinned });
+/* ═══════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════ */
+const tabMap = new Map();
+let activeId = null;
+const dlCards = new Map();
+
+/* ═══════════════════════════════════════════════════════════
+   IPC LISTENERS
+═══════════════════════════════════════════════════════════ */
+WMS.on.tabOpened(({ id, title, url }) => {
+  tabMap.set(id, { id, title, url, loading: true, favicon: null, canBack: false, canFwd: false });
   activeId = id;
   renderTabs();
 });
-
 WMS.on.tabClosed(({ id, nextId }) => {
   tabMap.delete(id); activeId = nextId;
   renderTabs(); syncNav();
 });
-
 WMS.on.tabActive(({ id, canBack, canFwd, zoom, url }) => {
   activeId = id;
   const t = tabMap.get(id);
   if (t) { t.canBack = canBack; t.canFwd = canFwd; }
-  setURL(url);
-  setZoom(zoom);
+  if (url) setURL(url);
+  if (zoom) setZoom(zoom);
   renderTabs(); syncNav();
 });
-
 WMS.on.tabUpdate(({ id, title, url }) => {
   const t = tabMap.get(id); if (!t) return;
   t.title = title; t.url = url;
-  if (id === activeId) setURL(url);
+  if (id === activeId && url) setURL(url);
   renderTabs();
 });
-
 WMS.on.tabLoading(({ id, v }) => {
   const t = tabMap.get(id); if (!t) return;
   t.loading = v; renderTabs();
   if (id === activeId) {
-    document.getElementById('btn-reload').innerHTML =
-      v ? '<i class="bi bi-x-lg"></i>' : '<i class="bi bi-arrow-clockwise"></i>';
-    document.getElementById('btn-reload').onclick =
-      v ? () => WMS.stop() : () => WMS.reload();
-    document.getElementById('btn-reload').title = v ? 'Stop' : 'Reload';
+    const br = document.getElementById('btn-reload');
+    br.innerHTML = v ? '<i class="bi bi-x-circle-fill"></i>' : '<i class="bi bi-arrow-clockwise"></i>';
+    br.title     = v ? 'Stop Loading' : 'Reload (Ctrl+R)';
+    br.onclick   = v ? () => WMS.stop() : () => WMS.reload();
   }
 });
-
 WMS.on.tabFavicon(({ id, url }) => {
   const t = tabMap.get(id); if (!t) return;
   t.favicon = url; renderTabs();
 });
-
 WMS.on.navState(({ id, canBack, canFwd }) => {
   const t = tabMap.get(id); if (!t) return;
   t.canBack = canBack; t.canFwd = canFwd;
   if (id === activeId) syncNav();
 });
-
 WMS.on.urlChanged(({ id, url }) => {
-  if (id === activeId) setURL(url);
-  updateURLSecurity(url);
+  if (id === activeId && url) { setURL(url); updateSecurity(url); }
 });
-
 WMS.on.navBlocked(host => toast(`🚫 Blocked: ${host}`, 'warning'));
 WMS.on.zoomChanged(({ zoom }) => setZoom(zoom));
-WMS.on.toast(({ msg, type }) => toast(msg, type));
-WMS.on.findOpen(() => toggleFind());
+WMS.on.toast(({ msg, type }) => toast(msg, type || 'info'));
+WMS.on.findOpen(() => openFind());
+WMS.on.screenshotDone(() => toast('📸 Screenshot saved to Downloads', 'success'));
 
+/* Download events */
 WMS.on.dlStart(({ id, filename, total }) => {
-  addToDLPanel(id, filename);
   addDLCard(id, filename, total);
+  addDLPanelItem(id, filename);
 });
-WMS.on.dlProgress(({ id, recv, total, pct }) => updateDLCard(id, recv, total, pct));
-WMS.on.dlComplete(({ id, filename, savePath }) => completeDLCard(id, filename, savePath));
-WMS.on.dlError(({ id, filename }) => errorDLCard(id, filename));
-WMS.on.screenshotDone(({ savePath }) => toast(`📸 Screenshot saved`, 'success'));
+WMS.on.dlProgress(({ id, recv, total, pct }) => updDLCard(id, recv, total, pct));
+WMS.on.dlComplete(({ id, filename, savePath }) => doneDLCard(id, filename, savePath));
+WMS.on.dlError(({ id, filename }) => failDLCard(id, filename));
 
-/* ════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    TAB RENDERING
-════════════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════ */
 const tabrow    = document.getElementById('tabrow');
 const btnNewTab = document.getElementById('btn-new-tab');
 
 function renderTabs() {
-  // Remove old tab elements (not the new-tab button)
-  tabrow.querySelectorAll('.tab').forEach(el => el.remove());
-
-  tabMap.forEach(t => {
-    const el = makeTab(t);
-    tabrow.insertBefore(el, btnNewTab);
-  });
-  scrollToActive();
+  tabrow.querySelectorAll('.tab').forEach(e => e.remove());
+  tabMap.forEach(t => tabrow.insertBefore(mkTab(t), btnNewTab));
+  const a = tabrow.querySelector('.tab.active');
+  if (a) a.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
 }
 
-function makeTab(t) {
-  const isActive = t.id === activeId;
-  const el       = document.createElement('div');
-  el.className   = 'tab' + (isActive ? ' active' : '') + (t.loading ? ' loading' : '') + (t.pinned ? ' pinned' : '');
-  el.title       = t.url || t.title;
-  el.onclick     = () => WMS.switchTab(t.id);
+function mkTab(t) {
+  const isA = t.id === activeId;
+  const el  = document.createElement('div');
+  el.className = 'tab' + (isA ? ' active' : '') + (t.loading ? ' loading' : '');
+  el.title = t.url || t.title;
+  el.onclick = () => WMS.switchTab(t.id);
 
-  const spin = document.createElement('div');
-  spin.className = 't-spin';
+  const spin = document.createElement('div'); spin.className = 't-spin';
 
   let fav;
   if (t.favicon) {
     fav = document.createElement('img');
-    fav.className = 't-fav';
-    fav.src = t.favicon;
-    fav.onerror = () => fav.replaceWith(favPH());
-  } else fav = favPH();
+    fav.className = 't-fav'; fav.src = t.favicon;
+    fav.onerror = () => fav.replaceWith(mkFavPH());
+  } else { fav = mkFavPH(); }
 
   const ttl = document.createElement('span');
-  ttl.className   = 't-ttl';
-  ttl.textContent = t.title || 'New Tab';
+  ttl.className = 't-ttl'; ttl.textContent = t.title || 'New Tab';
 
   const x = document.createElement('button');
-  x.className   = 't-close';
-  x.innerHTML   = '<i class="bi bi-x"></i>';
-  x.title       = 'Close';
-  x.onclick     = e => { e.stopPropagation(); WMS.closeTab(t.id); };
+  x.className = 't-x'; x.innerHTML = '<i class="bi bi-x"></i>'; x.title = 'Close Tab';
+  x.onclick = e => { e.stopPropagation(); WMS.closeTab(t.id); };
 
   el.append(spin, fav, ttl, x);
   return el;
 }
 
-function favPH() {
-  const d = document.createElement('div');
-  d.className = 't-fav-ph'; return d;
-}
-
-function scrollToActive() {
-  const a = tabrow.querySelector('.tab.active');
-  if (a) a.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
-}
+function mkFavPH() { const d = document.createElement('div'); d.className = 't-fav-ph'; return d; }
 
 function syncNav() {
   const t = tabMap.get(activeId);
@@ -1063,310 +1017,314 @@ function syncNav() {
   document.getElementById('btn-fwd').disabled  = !t?.canFwd;
 }
 
-/* ════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    URL BAR
-════════════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════ */
 function setURL(url) {
   const inp = document.getElementById('url-input');
   if (document.activeElement !== inp) inp.value = url || '';
-  updateURLSecurity(url);
+  updateSecurity(url);
 }
-
-function updateURLSecurity(url) {
-  const icon = document.getElementById('url-icon');
-  if (!icon) return;
-  const isHTTPS = (url || '').startsWith('https://');
-  icon.className = isHTTPS ? 'bi bi-lock-fill' : 'bi bi-globe';
-  icon.style.color = isHTTPS ? 'var(--success)' : 'var(--text-muted)';
-  icon.title = isHTTPS ? 'Secure (HTTPS)' : 'Not secure';
-}
-
-function urlKeydown(e) {
-  if (e.key === 'Enter') navToURL();
-  if (e.key === 'Escape') document.getElementById('url-input').blur();
-}
-
-function navToURL() {
-  let url = document.getElementById('url-input').value.trim();
-  if (!url) return;
-  if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
-  WMS.goToURL(url);
-}
-
-/* ════════════════════════════════════════════════════════════
-   ZOOM
-════════════════════════════════════════════════════════════ */
-function setZoom(pct) {
-  document.getElementById('zoom-val').textContent = pct + '%';
-}
-
-/* ════════════════════════════════════════════════════════════
-   FIND BAR
-════════════════════════════════════════════════════════════ */
-let findOpen = false;
-
-function toggleFind() {
-  findOpen = !findOpen;
-  document.getElementById('find-bar').classList.toggle('open', findOpen);
-  document.getElementById('btn-find').classList.toggle('active', findOpen);
-  if (findOpen) {
-    const inp = document.getElementById('find-inp');
-    inp.focus(); inp.select();
+function updateSecurity(url) {
+  const ico = document.getElementById('url-icon'); if (!ico) return;
+  if ((url||'').startsWith('https://')) {
+    ico.className = 'bi bi-lock-fill'; ico.style.color = 'var(--success)'; ico.title = 'Secure (HTTPS)';
   } else {
-    WMS.findStop();
-    document.getElementById('find-inp').value = '';
-    document.getElementById('find-count').textContent = '';
+    ico.className = 'bi bi-globe'; ico.style.color = 'var(--warn)'; ico.title = 'Not secure';
   }
 }
-
-function closeFind() { if (findOpen) toggleFind(); }
-
-function onFindInput() {
-  const q = document.getElementById('find-inp').value.trim();
-  if (q) WMS.findStart(q); else WMS.findStop();
+function urlKey(e) {
+  if (e.key === 'Enter') doNav();
+  if (e.key === 'Escape') e.target.blur();
 }
-
-function onFindKey(e) {
-  if (e.key === 'Escape')  { closeFind(); return; }
-  if (e.key === 'Enter')   { e.shiftKey ? WMS.findPrev(document.getElementById('find-inp').value) : WMS.findNext(document.getElementById('find-inp').value); }
+function doNav() {
+  let v = document.getElementById('url-input').value.trim();
+  if (!v) return;
+  if (!v.startsWith('http://') && !v.startsWith('https://')) v = 'https://' + v;
+  WMS.goToURL(v);
 }
+function setZoom(pct) { document.getElementById('zoom-val').textContent = pct + '%'; }
 
+/* ═══════════════════════════════════════════════════════════
+   FIND BAR
+═══════════════════════════════════════════════════════════ */
+let findIsOpen = false;
+const q = () => document.getElementById('find-inp').value;
+
+function toggleFind()   { findIsOpen ? closeFind() : openFind(); }
+function openFind() {
+  findIsOpen = true;
+  document.getElementById('find-bar').classList.add('open');
+  document.getElementById('btn-find').classList.add('active');
+  const inp = document.getElementById('find-inp'); inp.focus(); inp.select();
+}
+function closeFind() {
+  findIsOpen = false;
+  document.getElementById('find-bar').classList.remove('open');
+  document.getElementById('btn-find').classList.remove('active');
+  WMS.findStop();
+  document.getElementById('find-inp').value = '';
+  document.getElementById('find-count').textContent = '';
+}
+function doFind() { const v = q(); if (v) WMS.findStart(v); else WMS.findStop(); }
+function findKey(e) {
+  if (e.key === 'Escape') { closeFind(); return; }
+  if (e.key === 'Enter')  { e.shiftKey ? WMS.findPrev(q()) : WMS.findNext(q()); }
+}
 document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'f') { e.preventDefault(); toggleFind(); }
-  if (e.key === 'Escape' && findOpen) closeFind();
+  if ((e.ctrlKey||e.metaKey) && e.key === 'f') { e.preventDefault(); toggleFind(); }
+  if (e.key === 'Escape' && findIsOpen) closeFind();
 });
 
-/* ════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    SIDE PANELS
-════════════════════════════════════════════════════════════ */
-let openPanelId = null;
+═══════════════════════════════════════════════════════════ */
+let openPanel = null;
 
 function togglePanel(id) {
-  if (openPanelId && openPanelId !== id) {
-    document.getElementById(openPanelId)?.classList.remove('open');
+  // Close any other open panel first
+  if (openPanel && openPanel !== id) {
+    document.getElementById(openPanel).classList.remove('open');
+    document.querySelector(`[onclick*="${openPanel}"]`)?.classList.remove('active');
   }
-  const el = document.getElementById(id);
-  const isOpen = el.classList.toggle('open');
-  openPanelId = isOpen ? id : null;
+  const el     = document.getElementById(id);
+  const isNowOpen = el.classList.toggle('open');
+  openPanel = isNowOpen ? id : null;
 
-  if (isOpen) {
-    if (id === 'panel-bm')       loadBookmarks();
-    if (id === 'panel-hist')     loadHistory();
-    if (id === 'panel-settings') buildThemeGrid();
+  // Highlight the triggering button
+  const btnId = { 'p-dl':'btn-dl-panel','p-bm':'btn-bm-panel','p-hist':'btn-hist','p-settings':'btn-settings' }[id];
+  if (btnId) document.getElementById(btnId)?.classList.toggle('active', isNowOpen);
+
+  // Load data when panel opens
+  if (isNowOpen) {
+    if (id === 'p-bm')       loadBM();
+    if (id === 'p-hist')     loadHist();
+    if (id === 'p-settings') { buildThemeGrid(); buildZoomPresets(); }
   }
 }
 
 function closePanel(id) {
   document.getElementById(id)?.classList.remove('open');
-  if (openPanelId === id) openPanelId = null;
+  if (openPanel === id) openPanel = null;
+  const btnId = { 'p-dl':'btn-dl-panel','p-bm':'btn-bm-panel','p-hist':'btn-hist','p-settings':'btn-settings' }[id];
+  if (btnId) document.getElementById(btnId)?.classList.remove('active');
 }
 
-/* ════════════════════════════════════════════════════════════
+// Close panel when clicking outside it
+document.addEventListener('click', e => {
+  if (!openPanel) return;
+  const panel = document.getElementById(openPanel);
+  const shell = document.getElementById('shell');
+  // If click is outside the panel AND inside the shell bar
+  if (panel && !panel.contains(e.target) && shell.contains(e.target)) {
+    const isToolbarBtn = e.target.closest('.tbtn') && !e.target.closest('.dropdown-wrap');
+    if (isToolbarBtn) return; // togglePanel handles it
+    // click was on non-panel-toggle area of shell
+  }
+  // Don't auto-close — let the toggle buttons manage it
+});
+
+/* ═══════════════════════════════════════════════════════════
    BOOKMARKS
-════════════════════════════════════════════════════════════ */
-async function addBookmark() {
-  const t = tabMap.get(activeId);
-  if (!t) return;
+═══════════════════════════════════════════════════════════ */
+function addBookmark() {
+  const t = tabMap.get(activeId); if (!t) return;
   WMS.addBookmark({ url: t.url, title: t.title });
-  toast('🔖 Bookmarked!', 'success');
-  if (openPanelId === 'panel-bm') loadBookmarks();
+  toast('🔖 Bookmarked: ' + (t.title || t.url), 'success');
+  if (openPanel === 'p-bm') loadBM();
 }
 
-async function loadBookmarks() {
+async function loadBM() {
   const list = document.getElementById('bm-list');
-  bmCache = await WMS.getBookmarks();
-  if (!bmCache.length) {
-    list.innerHTML = '<div class="panel-empty"><i class="bi bi-bookmark"></i>No bookmarks yet</div>';
-    return;
+  list.innerHTML = '<div class="panel-empty" style="padding:20px;"><i class="bi bi-hourglass-split"></i>Loading…</div>';
+  try {
+    const bms = await WMS.getBookmarks();
+    if (!bms || !bms.length) {
+      list.innerHTML = '<div class="panel-empty"><i class="bi bi-bookmark-plus"></i>No bookmarks yet.<br>Click <strong>⊕</strong> in the toolbar to add one.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    bms.forEach(bm => {
+      const el = document.createElement('div');
+      el.className = 'pi';
+      el.innerHTML = `
+        <div class="pi-ico"><i class="bi bi-bookmark-fill" style="color:var(--accent);"></i></div>
+        <div class="pi-body">
+          <div class="pi-title">${esc(bm.title || bm.url)}</div>
+          <div class="pi-sub">${esc(bm.url)}</div>
+        </div>
+        <button class="pi-del" title="Remove" onclick="event.stopPropagation();removeBM(${bm.id})">
+          <i class="bi bi-trash3"></i></button>`;
+      el.querySelector('.pi-body').onclick = () => { WMS.goToURL(bm.url); closePanel('p-bm'); };
+      list.appendChild(el);
+    });
+  } catch(e) {
+    list.innerHTML = `<div class="panel-empty"><i class="bi bi-exclamation-triangle"></i>Could not load bookmarks.</div>`;
   }
-  list.innerHTML = '';
-  bmCache.forEach(bm => {
-    const el = document.createElement('div');
-    el.className = 'p-item';
-    el.innerHTML = `
-      <div class="p-item-icon"><i class="bi bi-bookmark-fill" style="color:var(--accent)"></i></div>
-      <div class="p-item-text">
-        <div class="p-item-title">${esc(bm.title || bm.url)}</div>
-        <div class="p-item-url">${esc(bm.url)}</div>
-      </div>
-      <button class="p-item-del" title="Remove" onclick="removeBookmark(${bm.id})"><i class="bi bi-trash3"></i></button>`;
-    el.querySelector('.p-item-text').onclick = () => { WMS.goToURL(bm.url); closePanel('panel-bm'); };
-    list.appendChild(el);
-  });
 }
 
-function removeBookmark(id) {
-  WMS.removeBookmark(id);
-  loadBookmarks();
-}
+function removeBM(id) { WMS.removeBookmark(id); loadBM(); }
 
-/* ════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    HISTORY
-════════════════════════════════════════════════════════════ */
-async function loadHistory() {
+═══════════════════════════════════════════════════════════ */
+async function loadHist() {
   const list = document.getElementById('hist-list');
-  histCache  = await WMS.getHistory();
-  if (!histCache.length) {
-    list.innerHTML = '<div class="panel-empty"><i class="bi bi-clock-history"></i>No history yet</div>';
-    return;
+  list.innerHTML = '<div class="panel-empty" style="padding:20px;"><i class="bi bi-hourglass-split"></i>Loading…</div>';
+  try {
+    const hist = await WMS.getHistory();
+    if (!hist || !hist.length) {
+      list.innerHTML = '<div class="panel-empty"><i class="bi bi-clock-history"></i>No history yet.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    hist.slice(0, 150).forEach(h => {
+      const el = document.createElement('div');
+      el.className = 'pi';
+      const d   = new Date(h.ts);
+      const ts  = d.toLocaleDateString([], { month:'short', day:'numeric' })
+                + ' ' + d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+      el.innerHTML = `
+        <div class="pi-ico"><i class="bi bi-clock" style="color:var(--text-muted);"></i></div>
+        <div class="pi-body">
+          <div class="pi-title">${esc(h.title || h.url)}</div>
+          <div class="pi-sub">${esc(h.url)}  ·  ${ts}</div>
+        </div>`;
+      el.onclick = () => { WMS.goToURL(h.url); closePanel('p-hist'); };
+      list.appendChild(el);
+    });
+  } catch(e) {
+    list.innerHTML = `<div class="panel-empty"><i class="bi bi-exclamation-triangle"></i>Could not load history.</div>`;
   }
-  list.innerHTML = '';
-  histCache.slice(0, 100).forEach(h => {
-    const el = document.createElement('div');
-    el.className = 'p-item';
-    const d = new Date(h.ts);
-    const timeStr = d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-    el.innerHTML = `
-      <div class="p-item-icon"><i class="bi bi-clock" style="color:var(--text-muted)"></i></div>
-      <div class="p-item-text">
-        <div class="p-item-title">${esc(h.title || h.url)}</div>
-        <div class="p-item-url">${esc(h.url)} · ${timeStr}</div>
-      </div>`;
-    el.onclick = () => { WMS.goToURL(h.url); closePanel('panel-hist'); };
-    list.appendChild(el);
-  });
 }
 
-async function clearHistory() {
+async function clearHist() {
   WMS.clearHistory();
-  await loadHistory();
   toast('🗑 History cleared', 'info');
+  await loadHist();
 }
 
-/* ════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    DUPLICATE TAB
-════════════════════════════════════════════════════════════ */
-function duplicateCurTab() {
-  if (activeId) WMS.duplicateTab(activeId);
-  closeMenu('more-menu');
-}
+═══════════════════════════════════════════════════════════ */
+function dupTab() { if (activeId) WMS.duplicateTab(activeId); }
 
-/* ════════════════════════════════════════════════════════════
-   DOWNLOAD CARDS (tray)
-════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   DROPDOWN (More menu)
+═══════════════════════════════════════════════════════════ */
+function toggleDD() { document.getElementById('more-dd').classList.toggle('open'); }
+function closeDD()  { document.getElementById('more-dd').classList.remove('open'); }
+document.addEventListener('click', e => {
+  if (!e.target.closest('#more-wrap')) closeDD();
+});
+
+/* ═══════════════════════════════════════════════════════════
+   DOWNLOAD CARDS (floating tray)
+═══════════════════════════════════════════════════════════ */
 function addDLCard(id, filename, total) {
   const tray = document.getElementById('dl-tray');
   const el   = document.createElement('div');
-  el.className = 'dl-card';
-  el.id        = 'dlc-' + id;
+  el.className = 'dl-card'; el.id = 'dlc-' + id;
   el.innerHTML = `
-    <div class="dl-row1">
-      <span class="dl-ico">${fileIcon(filename)}</span>
+    <div class="dl-r1">
+      <span class="dl-ico">${fIcon(filename)}</span>
       <span class="dl-name" title="${esc(filename)}">${esc(filename)}</span>
-      <button class="dl-x" onclick="document.getElementById('dlc-${id}').remove()"><i class="bi bi-x"></i></button>
+      <button class="dl-dismiss" onclick="document.getElementById('dlc-${id}').remove()"><i class="bi bi-x"></i></button>
     </div>
     <div class="dl-track"><div class="dl-bar indet" id="dlb-${id}"></div></div>
-    <div class="dl-stat" id="dls-${id}">Starting…</div>
-    <div class="dl-acts" id="dla-${id}">
-      <button class="btn btn-sm" style="flex:1;background:var(--accent-dim);color:var(--accent);border:none;border-radius:6px;"
-              onclick="WMS.openDownloads()"><i class="bi bi-folder2-open"></i> Open Folder</button>
+    <div class="dl-stat" id="dls-${id}">Starting download…</div>
+    <div class="dl-btns" id="dla-${id}">
+      <button class="dl-action primary" onclick="WMS.openDownloads()"><i class="bi bi-folder2-open"></i> Open Folder</button>
     </div>`;
   tray.prepend(el);
-  dlCards.set(id, { el });
-  setTimeout(() => { el.remove(); dlCards.delete(id); }, 35000);
+  dlCards.set(id, el);
+  setTimeout(() => { el.remove(); dlCards.delete(id); }, 40000);
 }
 
-function updateDLCard(id, recv, total, pct) {
+function updDLCard(id, recv, total, pct) {
   const bar  = document.getElementById('dlb-' + id);
   const stat = document.getElementById('dls-' + id);
   if (!bar) return;
-  if (pct >= 0) { bar.style.width = pct + '%'; bar.classList.remove('indet'); if (stat) stat.textContent = `${pct}%  ·  ${fmtBytes(recv)} / ${fmtBytes(total)}`; }
-  else          { bar.classList.add('indet'); if (stat) stat.textContent = fmtBytes(recv) + ' downloaded…'; }
+  if (pct >= 0) {
+    bar.style.width = pct + '%'; bar.classList.remove('indet');
+    if (stat) stat.textContent = `${pct}%  ·  ${fBytes(recv)} / ${fBytes(total)}`;
+  } else {
+    bar.classList.add('indet');
+    if (stat) stat.textContent = fBytes(recv) + ' downloaded…';
+  }
 }
 
-function completeDLCard(id, filename, savePath) {
-  const card = document.getElementById('dlc-' + id);
-  if (!card) { addDLCard(id, filename, 0); }
-  const c = document.getElementById('dlc-' + id);
-  if (!c) return;
+function doneDLCard(id, filename, savePath) {
+  if (!document.getElementById('dlc-' + id)) addDLCard(id, filename, 0);
+  const c = document.getElementById('dlc-' + id); if (!c) return;
   c.classList.add('done');
-  const stat = document.getElementById('dls-' + id);
-  if (stat) stat.textContent = '✅ Download complete';
-  const acts = document.getElementById('dla-' + id);
-  if (acts) acts.style.display = 'flex';
+  const s = document.getElementById('dls-' + id); if (s) s.textContent = '✅ Saved to Downloads';
+  const a = document.getElementById('dla-' + id); if (a) a.style.display = 'flex';
   setTimeout(() => { c.remove(); dlCards.delete(id); }, 10000);
 }
 
-function errorDLCard(id) {
+function failDLCard(id) {
   const c = document.getElementById('dlc-' + id); if (!c) return;
   c.classList.add('fail');
-  const stat = document.getElementById('dls-' + id);
-  if (stat) stat.textContent = '❌ Failed';
+  const s = document.getElementById('dls-' + id); if (s) s.textContent = '❌ Download failed';
   setTimeout(() => { c.remove(); dlCards.delete(id); }, 6000);
 }
 
-function addToDLPanel(id, filename) {
-  const list = document.getElementById('dl-list');
+function addDLPanelItem(id, filename) {
+  const list = document.getElementById('dl-panel-list');
   if (list.querySelector('.panel-empty')) list.innerHTML = '';
   const el = document.createElement('div');
-  el.className = 'p-item';
-  el.id        = 'dlp-' + id;
+  el.className = 'pi'; el.id = 'dlp-' + id;
   el.innerHTML = `
-    <div class="p-item-icon">${fileIcon(filename)}</div>
-    <div class="p-item-text">
-      <div class="p-item-title">${esc(filename)}</div>
-      <div class="p-item-url" id="dlps-${id}">Downloading…</div>
+    <div class="pi-ico">${fIcon(filename)}</div>
+    <div class="pi-body">
+      <div class="pi-title">${esc(filename)}</div>
+      <div class="pi-sub" id="dlps-${id}">Downloading…</div>
     </div>`;
+  el.onclick = () => WMS.openDownloads();
   list.prepend(el);
 }
 
-/* ════════════════════════════════════════════════════════════
-   TOOLBAR DROPDOWNS
-════════════════════════════════════════════════════════════ */
-function toggleMenu(id) {
-  const el = document.getElementById(id);
-  el.classList.toggle('show');
-}
-function closeMenu(id) { document.getElementById(id)?.classList.remove('show'); }
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('.tbtn-dropdown')) {
-    document.querySelectorAll('.tbtn-menu.show').forEach(m => m.classList.remove('show'));
-  }
-});
-
-/* ════════════════════════════════════════════════════════════
-   TOAST
-════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   TOASTS
+═══════════════════════════════════════════════════════════ */
 function toast(msg, type = '') {
-  const wrap = document.getElementById('toast-wrap');
-  const el   = document.createElement('div');
+  const stack = document.getElementById('toast-stack');
+  const el    = document.createElement('div');
   el.className = 'toast-item' + (type ? ' ' + type : '');
-  const iconMap = { success:'bi-check-circle-fill', warning:'bi-exclamation-triangle-fill', danger:'bi-x-circle-fill', info:'bi-info-circle-fill' };
-  const ic = iconMap[type] || 'bi-bell-fill';
-  el.innerHTML = `<i class="bi ${ic}"></i><span>${esc(msg)}</span>`;
-  wrap.prepend(el);
+  const icons = { success:'bi-check-circle-fill', warning:'bi-exclamation-triangle-fill', danger:'bi-x-circle-fill', info:'bi-info-circle-fill' };
+  el.innerHTML = `<i class="bi ${icons[type]||'bi-bell-fill'}"></i><span>${esc(msg)}</span>`;
+  stack.prepend(el);
   setTimeout(() => el.remove(), 3500);
 }
 
-/* ════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    UTILITIES
-════════════════════════════════════════════════════════════ */
-function fileIcon(name) {
+═══════════════════════════════════════════════════════════ */
+function fIcon(name) {
   const e = (name||'').split('.').pop().toLowerCase();
-  return { pdf:'📄',xls:'📊',xlsx:'📊',csv:'📊',doc:'📝',docx:'📝',txt:'📝',
-           zip:'📦',rar:'📦','7z':'📦',gz:'📦',png:'🖼',jpg:'🖼',jpeg:'🖼',
-           gif:'🖼',svg:'🖼',webp:'🖼',mp4:'🎬',mp3:'🎵',exe:'⚙️',
-           html:'🌐',css:'🎨',js:'📜',py:'🐍',php:'🐘',sql:'🗄',json:'📋' }[e] || '⬇️';
+  return ({pdf:'📄',xls:'📊',xlsx:'📊',csv:'📊',doc:'📝',docx:'📝',
+           txt:'📝',zip:'📦',rar:'📦','7z':'📦',gz:'📦',
+           png:'🖼',jpg:'🖼',jpeg:'🖼',gif:'🖼',svg:'🖼',webp:'🖼',
+           mp4:'🎬',mp3:'🎵',exe:'⚙️',html:'🌐',js:'📜',py:'🐍',sql:'🗄'})[e] || '⬇️';
 }
-
-function fmtBytes(b) {
+function fBytes(b) {
   if (!b||b<0) return '?';
-  if (b<1024)      return b+' B';
-  if (b<1048576)   return (b/1024).toFixed(1)+' KB';
-  if (b<1073741824)return (b/1048576).toFixed(1)+' MB';
+  if (b<1024)       return b+' B';
+  if (b<1048576)    return (b/1024).toFixed(1)+' KB';
+  if (b<1073741824) return (b/1048576).toFixed(1)+' MB';
   return (b/1073741824).toFixed(2)+' GB';
 }
-
 function esc(s) {
   return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-/* ════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    INIT
-════════════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════ */
 buildThemeGrid();
-applySettings();
+buildZoomPresets();
+loadOpts();
 </script>
 </body>
 </html>
