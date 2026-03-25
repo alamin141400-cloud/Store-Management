@@ -1,4 +1,4 @@
-# Arman Store WMS — Windows Desktop App  v2.0
+# Smart Store — Windows Desktop App  v2.0
 ### Emaar Al Bader Warehouse Management System
 
 ---
