@@ -1,49 +1,39 @@
 {
-  "name": "Smart-store",
-  "version": "1.0.0",
-  "description": "Smart Store – Warehouse Management System Desktop Client",
+  "name": "smart-store",
+  "version": "2.0.0",
+  "description": "Smart Store – Professional Kiosk Browser for Warehouse Management",
   "main": "src/main.js",
   "author": "Smart Store",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --publish=never",
     "build:win": "electron-builder --win",
-    "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux"
+    "build:win32": "electron-builder --win --ia32"
   },
-  "dependencies": {},
+  "dependencies": {
+    "electron-store": "^8.1.0"
+  },
   "devDependencies": {
     "electron": "^29.1.0",
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.smart.store",
+    "appId": "com.smartstore.browser",
     "productName": "Smart Store",
-    "asar": true,
-    "directories": {
-      "output": "dist"
-    },
+    "copyright": "Copyright © 2026 Smart Store",
+    "directories": { "output": "dist" },
     "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": ["x64"]
-        }
-      ]
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "assets/icon.ico",
+      "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
+      "installerIcon": "assets/icon.ico",
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
-    },
-    "mac": {
-      "target": "dmg"
-    },
-    "linux": {
-      "target": "AppImage"
-    },
-    "publish": null
+      "createStartMenuShortcut": true,
+      "shortcutName": "Smart Store"
+    }
   }
 }

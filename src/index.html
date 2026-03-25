@@ -1,336 +1,1261 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Arman Store</title>
-  <style>
-    /* ── Reset ── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Smart Store</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════════════════════ */
+:root {
+  --bg-deepest:   #0F172A;
+  --bg-deep:      #1E293B;
+  --bg-panel:     #1A2744;
+  --bg-card:      #243050;
+  --bg-hover:     #2D3D60;
+  --accent:       #3B82F6;
+  --accent-glow:  #60A5FA;
+  --accent-dim:   #1D4ED8;
+  --green:        #10B981;
+  --yellow:       #F59E0B;
+  --red:          #EF4444;
+  --text-primary: #F1F5F9;
+  --text-secondary:#94A3B8;
+  --text-muted:   #475569;
+  --border:       rgba(59,130,246,0.2);
+  --border-bright:rgba(59,130,246,0.5);
+  --radius-sm:    6px;
+  --radius:       10px;
+  --radius-lg:    16px;
+  --tab-bar-h:    88px;
+  --font:         'Segoe UI', system-ui, -apple-system, sans-serif;
+  --shadow:       0 4px 20px rgba(0,0,0,0.4);
+  --shadow-lg:    0 8px 40px rgba(0,0,0,0.6);
+  --transition:   0.18s cubic-bezier(0.4,0,0.2,1);
+}
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #1A237E;
-      height: 52px;          /* Shell only occupies the tab bar height */
-      overflow: hidden;
-      user-select: none;
-      -webkit-app-region: drag; /* Allow dragging the window by the tab bar */
-    }
+/* ═══════════════════════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ── Tab bar container ── */
-    #tab-bar {
-      display: flex;
-      align-items: center;
-      height: 52px;
-      background: #1A237E;
-      padding: 0 4px;
-      gap: 2px;
-      -webkit-app-region: no-drag;
-    }
+html, body {
+  height: var(--tab-bar-h);
+  overflow: hidden;
+  font-family: var(--font);
+  background: var(--bg-deepest);
+  color: var(--text-primary);
+  user-select: none;
+  -webkit-app-region: drag;
+}
 
-    /* ── Scrollable tabs area ── */
-    #tabs-scroll {
-      display: flex;
-      align-items: center;
-      flex: 1;
-      overflow-x: auto;
-      overflow-y: hidden;
-      gap: 3px;
-      height: 100%;
-      padding: 6px 0;
-      scrollbar-width: none;
-    }
-    #tabs-scroll::-webkit-scrollbar { display: none; }
+/* ═══════════════════════════════════════════════════════════════
+   SHELL — the entire visible UI (88px tall)
+═══════════════════════════════════════════════════════════════ */
+#shell {
+  display: flex;
+  flex-direction: column;
+  height: var(--tab-bar-h);
+  background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%);
+  border-bottom: 1px solid var(--border-bright);
+  -webkit-app-region: no-drag;
+  position: relative;
+}
 
-    /* ── Single tab button ── */
-    .tab {
-      display: flex;
-      align-items: center;
-      min-width: 130px;
-      max-width: 200px;
-      height: 36px;
-      background: #283593;
-      border-radius: 6px;
-      padding: 0 8px 0 10px;
-      cursor: pointer;
-      flex-shrink: 0;
-      transition: background 0.15s;
-      gap: 6px;
-    }
-    .tab:hover { background: #303F9F; }
-    .tab.active {
-      background: #3949AB;
-      box-shadow: inset 0 -2px 0 #42A5F5;
-    }
+/* ── ROW 1: Tab strip ─────────────────────────────────────────*/
+#tab-strip {
+  display: flex;
+  align-items: center;
+  height: 42px;
+  padding: 4px 6px 0;
+  gap: 3px;
+  background: var(--bg-deepest);
+  flex-shrink: 0;
+}
 
-    /* ── Spinner inside tab ── */
-    .tab-spinner {
-      width: 12px; height: 12px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: #90CAF9;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      flex-shrink: 0;
-      display: none;
-    }
-    .tab.loading .tab-spinner { display: block; }
+#tabs-scroll {
+  display: flex;
+  align-items: flex-end;
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  gap: 3px;
+  height: 100%;
+  padding-bottom: 0;
+  scrollbar-width: none;
+}
+#tabs-scroll::-webkit-scrollbar { display: none; }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
+/* ── Single tab ── */
+.tab {
+  display: flex; align-items: center;
+  min-width: 140px; max-width: 220px;
+  height: 34px;
+  background: var(--bg-card);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  padding: 0 8px 0 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  transition: background var(--transition), border-color var(--transition);
+  position: relative;
+}
+.tab:hover { background: var(--bg-hover); }
+.tab.active {
+  background: var(--bg-deep);
+  border-color: var(--border-bright);
+  border-bottom: 1px solid var(--bg-deep);
+}
+.tab.pinned { min-width: 42px; max-width: 42px; justify-content: center; }
+.tab.pinned .tab-title, .tab.pinned .tab-close { display: none; }
 
-    /* ── Tab favicon placeholder ── */
-    .tab-icon {
-      width: 14px; height: 14px;
-      background: rgba(255,255,255,0.25);
-      border-radius: 2px;
-      flex-shrink: 0;
-    }
-    .tab.loading .tab-icon { display: none; }
+.tab-favicon { width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0; opacity: 0.85; }
+.tab-favicon-placeholder {
+  width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0;
+  background: var(--accent-dim); opacity: 0.5;
+}
 
-    /* ── Tab title ── */
-    .tab-title {
-      flex: 1;
-      font-size: 12px;
-      color: #E8EAF6;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .tab.active .tab-title { color: #FFFFFF; }
+.tab-spinner {
+  width: 12px; height: 12px; flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-top-color: var(--accent-glow);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: none;
+}
+.tab.loading .tab-spinner      { display: block; }
+.tab.loading .tab-favicon,
+.tab.loading .tab-favicon-placeholder { display: none; }
 
-    /* ── Close (×) button ── */
-    .tab-close {
-      width: 18px; height: 18px;
-      border-radius: 50%;
-      border: none;
-      background: transparent;
-      color: #9FA8DA;
-      font-size: 14px;
-      line-height: 1;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      transition: background 0.12s, color 0.12s;
-      padding: 0;
-    }
-    .tab-close:hover { background: rgba(255,255,255,0.15); color: #fff; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Control buttons (back, forward, reload) ── */
-    #nav-controls {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-      padding: 0 4px;
-      -webkit-app-region: no-drag;
-    }
-    .nav-btn {
-      width: 32px; height: 32px;
-      border-radius: 50%;
-      border: none;
-      background: transparent;
-      color: #9FA8DA;
-      font-size: 16px;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: background 0.12s, color 0.12s;
-    }
-    .nav-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
-    .nav-btn:disabled { opacity: 0.3; cursor: default; }
+.tab-title {
+  flex: 1; font-size: 12px; color: var(--text-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tab.active .tab-title { color: var(--text-primary); }
 
-    /* ── New Tab (+) button ── */
-    #btn-new-tab {
-      width: 34px; height: 34px;
-      border-radius: 50%;
-      border: none;
-      background: transparent;
-      color: #9FA8DA;
-      font-size: 22px;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      transition: background 0.12s, color 0.12s;
-      -webkit-app-region: no-drag;
-    }
-    #btn-new-tab:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.tab-close {
+  width: 18px; height: 18px; border-radius: 50%; border: none;
+  background: transparent; color: var(--text-muted);
+  font-size: 13px; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--transition), color var(--transition);
+  padding: 0;
+}
+.tab-close:hover { background: rgba(239,68,68,0.25); color: #EF4444; }
 
-    /* ── Toast notification ── */
-    #toast {
-      position: fixed;
-      bottom: 12px;
-      left: 50%;
-      transform: translateX(-50%) translateY(60px);
-      background: rgba(0,0,0,0.75);
-      color: #fff;
-      padding: 8px 18px;
-      border-radius: 20px;
-      font-size: 13px;
-      pointer-events: none;
-      transition: transform 0.25s ease, opacity 0.25s ease;
-      opacity: 0;
-      z-index: 9999;
-      white-space: nowrap;
-    }
-    #toast.show {
-      transform: translateX(-50%) translateY(0);
-      opacity: 1;
-    }
-  </style>
+/* ── Tab strip controls ── */
+.tab-strip-btn {
+  width: 32px; height: 32px; border-radius: 50%; border: none;
+  background: transparent; color: var(--text-secondary);
+  font-size: 18px; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--transition), color var(--transition);
+}
+.tab-strip-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.tab-strip-btn.active-btn { color: var(--accent-glow); }
+
+/* ── ROW 2: Nav bar ─────────────────────────────────────────*/
+#nav-bar {
+  display: flex; align-items: center;
+  height: 46px;
+  padding: 0 10px;
+  gap: 6px;
+  background: var(--bg-deep);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* Navigation buttons */
+.nav-btn {
+  width: 34px; height: 34px; border-radius: 50%; border: none;
+  background: transparent; color: var(--text-secondary);
+  font-size: 16px; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--transition), color var(--transition);
+  position: relative;
+}
+.nav-btn:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
+.nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* URL bar */
+#url-bar-wrap {
+  flex: 1; position: relative;
+  display: flex; align-items: center;
+}
+#url-bar {
+  width: 100%; height: 32px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-primary);
+  font-size: 13px;
+  padding: 0 36px 0 14px;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  cursor: text;
+}
+#url-bar:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+  background: var(--bg-card);
+}
+#url-bar-go {
+  position: absolute; right: 8px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent); border: none; color: white;
+  font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--transition);
+}
+#url-bar:focus + #url-bar-go,
+#url-bar-go:hover { opacity: 1; pointer-events: all; }
+
+/* Zoom badge */
+#zoom-badge {
+  font-size: 11px; color: var(--text-secondary);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 2px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  min-width: 42px;
+  text-align: center;
+  transition: background var(--transition);
+}
+#zoom-badge:hover { background: var(--bg-hover); }
+
+/* Separator */
+.sep { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; }
+
+/* ── Feature icon buttons (right side of nav bar) ── */
+.feat-btn {
+  width: 32px; height: 32px; border-radius: var(--radius-sm);
+  border: none; background: transparent; color: var(--text-secondary);
+  font-size: 17px; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--transition), color var(--transition);
+  position: relative;
+}
+.feat-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.feat-btn.on { color: var(--accent-glow); }
+.feat-btn .badge {
+  position: absolute; top: 3px; right: 3px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green);
+  display: none;
+}
+.feat-btn .badge.show { display: block; }
+
+/* ═══════════════════════════════════════════════════════════════
+   FIND BAR (slides in below nav-bar)
+═══════════════════════════════════════════════════════════════ */
+#find-bar {
+  display: none;
+  position: fixed;
+  top: var(--tab-bar-h);
+  right: 12px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-bright);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  padding: 8px 12px;
+  gap: 8px;
+  align-items: center;
+  z-index: 200;
+  box-shadow: var(--shadow);
+}
+#find-bar.open { display: flex; }
+#find-input {
+  width: 240px; height: 28px;
+  background: var(--bg-panel); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text-primary);
+  font-size: 13px; padding: 0 10px; outline: none;
+}
+#find-input:focus { border-color: var(--accent); }
+#find-count { font-size: 12px; color: var(--text-secondary); min-width: 60px; }
+.find-btn {
+  width: 26px; height: 26px; border-radius: 50%; border: none;
+  background: var(--bg-panel); color: var(--text-secondary);
+  font-size: 13px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--transition);
+}
+.find-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+/* ═══════════════════════════════════════════════════════════════
+   PANELS (slide in from right)
+═══════════════════════════════════════════════════════════════ */
+.panel {
+  position: fixed;
+  top: 0; right: -380px; bottom: 0;
+  width: 360px;
+  background: var(--bg-deep);
+  border-left: 1px solid var(--border-bright);
+  z-index: 500;
+  display: flex; flex-direction: column;
+  transition: right 0.28s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: var(--shadow-lg);
+}
+.panel.open { right: 0; }
+
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.panel-title {
+  font-size: 15px; font-weight: 600; color: var(--text-primary);
+  display: flex; align-items: center; gap: 8px;
+}
+.panel-close {
+  width: 28px; height: 28px; border-radius: 50%; border: none;
+  background: transparent; color: var(--text-secondary);
+  font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--transition);
+}
+.panel-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.panel-body {
+  flex: 1; overflow-y: auto; padding: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-hover) transparent;
+}
+.panel-body::-webkit-scrollbar { width: 5px; }
+.panel-body::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 10px; }
+
+.panel-actions {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 8px; flex-shrink: 0;
+}
+
+/* ── Panel item cards ── */
+.p-item {
+  display: flex; align-items: center;
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  gap: 10px;
+  transition: background var(--transition);
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.p-item:hover { background: var(--bg-hover); border-color: var(--border); }
+
+.p-item-icon {
+  width: 34px; height: 34px; border-radius: var(--radius-sm);
+  background: var(--bg-panel);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.p-item-body { flex: 1; min-width: 0; }
+.p-item-title { font-size: 13px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p-item-sub   { font-size: 11px; color: var(--text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.p-action-btn {
+  width: 26px; height: 26px; border-radius: 50%; border: none;
+  background: transparent; color: var(--text-muted);
+  font-size: 13px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--transition), color var(--transition);
+}
+.p-action-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.p-action-btn.danger:hover { background: rgba(239,68,68,0.2); color: var(--red); }
+
+/* ═══════════════════════════════════════════════════════════════
+   PASSWORD PANEL EXTRAS
+═══════════════════════════════════════════════════════════════ */
+.pw-form {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 14px;
+}
+.pw-form-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
+.pw-input {
+  width: 100%; height: 34px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text-primary);
+  font-size: 13px; padding: 0 10px; outline: none;
+  margin-bottom: 8px;
+  transition: border-color var(--transition);
+}
+.pw-input:focus { border-color: var(--accent); }
+.pw-masked { font-family: monospace; letter-spacing: 2px; color: var(--text-secondary); }
+
+/* ═══════════════════════════════════════════════════════════════
+   DOWNLOAD PANEL
+═══════════════════════════════════════════════════════════════ */
+.dl-item { }
+.dl-progress-bar {
+  height: 3px; background: var(--bg-panel); border-radius: 2px;
+  margin-top: 6px; overflow: hidden;
+}
+.dl-progress-fill {
+  height: 100%; background: var(--accent);
+  border-radius: 2px; transition: width 0.2s;
+}
+.dl-status {
+  font-size: 11px; margin-top: 3px;
+  color: var(--text-secondary);
+}
+.dl-status.done { color: var(--green); }
+.dl-status.failed { color: var(--red); }
+
+/* ═══════════════════════════════════════════════════════════════
+   SAVE PASSWORD PROMPT MODAL
+═══════════════════════════════════════════════════════════════ */
+#save-pw-modal {
+  display: none;
+  position: fixed;
+  bottom: 20px; left: 50%; transform: translateX(-50%);
+  z-index: 800;
+  background: var(--bg-deep);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  width: 380px;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.25s ease;
+}
+#save-pw-modal.show { display: block; }
+@keyframes slideUp { from { transform: translateX(-50%) translateY(20px); opacity:0; } to { transform: translateX(-50%) translateY(0); opacity:1; } }
+
+.modal-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+.modal-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.modal-row .pw-input { margin-bottom: 0; }
+.modal-btns { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+
+/* ═══════════════════════════════════════════════════════════════
+   PANEL OVERLAY
+═══════════════════════════════════════════════════════════════ */
+#panel-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 400;
+  background: rgba(0,0,0,0.4);
+}
+#panel-overlay.show { display: block; }
+
+/* ═══════════════════════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 6px; height: 32px; padding: 0 14px;
+  border-radius: var(--radius-sm); border: none;
+  font-size: 13px; cursor: pointer;
+  transition: background var(--transition), transform 0.1s;
+  font-family: var(--font);
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { background: var(--accent-glow); }
+.btn-secondary { background: var(--bg-panel); color: var(--text-secondary); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--bg-hover); color: var(--text-primary); }
+.btn-danger { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+.btn-danger:hover { background: rgba(239,68,68,0.25); }
+.btn-icon { padding: 0; width: 32px; }
+.btn-sm { height: 26px; padding: 0 10px; font-size: 12px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   TOAST NOTIFICATIONS
+═══════════════════════════════════════════════════════════════ */
+#toast-stack {
+  position: fixed;
+  bottom: 20px; right: 20px;
+  z-index: 9999;
+  display: flex; flex-direction: column-reverse; gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-size: 13px; color: var(--text-primary);
+  box-shadow: var(--shadow);
+  pointer-events: all;
+  animation: toastIn 0.25s ease;
+  min-width: 220px; max-width: 360px;
+}
+@keyframes toastIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: none; } }
+.toast.fade-out { animation: toastOut 0.3s ease forwards; }
+@keyframes toastOut { to { opacity:0; transform: translateX(20px); } }
+.toast.success { border-color: rgba(16,185,129,0.5); }
+.toast.error   { border-color: rgba(239,68,68,0.5); }
+.toast.warn    { border-color: rgba(245,158,11,0.5); }
+.toast.info    { border-color: var(--border-bright); }
+.toast-icon    { font-size: 16px; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════════════════════════════ */
+.empty-state {
+  text-align: center; padding: 40px 20px; color: var(--text-muted);
+}
+.empty-state .ei { font-size: 42px; margin-bottom: 12px; opacity: 0.5; }
+.empty-state p { font-size: 13px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION HEADER inside panels
+═══════════════════════════════════════════════════════════════ */
+.section-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.8px; color: var(--text-muted);
+  padding: 8px 4px 6px; margin-bottom: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCROLLBARS
+═══════════════════════════════════════════════════════════════ */
+* { scrollbar-width: thin; scrollbar-color: var(--bg-hover) transparent; }
+</style>
 </head>
 <body>
 
-  <div id="tab-bar">
-    <!-- Back / Forward / Reload controls -->
-    <div id="nav-controls">
-      <button class="nav-btn" id="btn-back"    title="Back"    onclick="api.goBack()">&#8592;</button>
-      <button class="nav-btn" id="btn-forward" title="Forward" onclick="api.goForward()">&#8594;</button>
-      <button class="nav-btn" id="btn-reload"  title="Reload"  onclick="api.reload()">&#8635;</button>
-    </div>
+<!-- ═══════════════════════════════════════════════════════════
+     SHELL
+═══════════════════════════════════════════════════════════════ -->
+<div id="shell">
 
-    <!-- Scrollable tab strip -->
-    <div id="tabs-scroll">
-      <!-- Tab elements injected here by JS -->
-    </div>
-
-    <!-- New tab button -->
-    <button id="btn-new-tab" title="New Tab" onclick="openNewTab()">+</button>
+  <!-- ── ROW 1: Tab Strip ── -->
+  <div id="tab-strip">
+    <div id="tabs-scroll"><!-- tabs injected here --></div>
+    <!-- New Tab Button -->
+    <button class="tab-strip-btn" id="btn-new-tab" title="New Tab (Ctrl+T)" onclick="newTab()">+</button>
   </div>
 
-  <div id="toast"></div>
+  <!-- ── ROW 2: Navigation Bar ── -->
+  <div id="nav-bar">
+    <!-- Back / Forward / Reload -->
+    <button class="nav-btn" id="btn-back"    title="Back (Alt+Left)"    onclick="api.goBack()"    disabled>&#8592;</button>
+    <button class="nav-btn" id="btn-forward" title="Forward (Alt+Right)" onclick="api.goForward()" disabled>&#8594;</button>
+    <button class="nav-btn" id="btn-reload"  title="Reload (F5)"        onclick="api.reload()">&#8635;</button>
 
-  <script>
-    /**
-     * index.html JavaScript
-     *
-     * Manages the tab bar UI.
-     * All actual web content is in BrowserViews managed by main.js.
-     * Communication is via window.electronAPI (injected by preload.js).
-     *
-     * tabsState: Map<id, { id, title, url, loading }>
-     * activeTabId: number | null
-     */
+    <!-- URL Bar -->
+    <div id="url-bar-wrap">
+      <input id="url-bar" type="text" placeholder="https://arman.ahrtechdiv.com" autocomplete="off" spellcheck="false"/>
+      <button id="url-bar-go" title="Go" onclick="navigateToUrl()">&#10003;</button>
+    </div>
 
-    const api          = window.electronAPI;
-    const tabsScroll   = document.getElementById('tabs-scroll');
-    const tabsState    = new Map();   // id → { id, title, url, loading }
-    let   activeTabId  = null;
+    <!-- Zoom -->
+    <div id="zoom-badge" title="Zoom — click to reset" onclick="api.zoomReset()">100%</div>
 
-    // ── IPC listeners ──────────────────────────────────────────
+    <div class="sep"></div>
 
-    // New tab was opened in main process
-    api.onTabOpened(({ id, title, url }) => {
-      tabsState.set(id, { id, title, url, loading: true });
-      activeTabId = id;
-      renderTabs();
-    });
+    <!-- Feature buttons -->
+    <button class="feat-btn" id="btn-bookmark" title="Bookmark (Ctrl+D)" onclick="api.bookmarkToggle()">🔖</button>
+    <button class="feat-btn" id="btn-find"     title="Find in Page (Ctrl+F)" onclick="toggleFind()">🔍</button>
+    <button class="feat-btn" id="btn-dark"     title="Dark Mode" onclick="api.toggleDarkMode()">🌙</button>
 
-    // Tab was closed
-    api.onTabClosed(({ id, newActiveId }) => {
-      tabsState.delete(id);
-      activeTabId = newActiveId;
-      renderTabs();
-    });
+    <div class="sep"></div>
 
-    // Active tab changed
-    api.onTabSwitched(({ id }) => {
-      activeTabId = id;
-      renderTabs();
-    });
+    <button class="feat-btn" id="btn-passwords" title="Password Manager" onclick="openPanel('passwords')">
+      🔑<span class="badge" id="pw-badge"></span>
+    </button>
+    <button class="feat-btn" id="btn-bookmarks-panel" title="Bookmarks" onclick="openPanel('bookmarks')">
+      ⭐<span class="badge" id="bm-badge"></span>
+    </button>
+    <button class="feat-btn" id="btn-history" title="History" onclick="openPanel('history')">🕐</button>
+    <button class="feat-btn" id="btn-downloads" title="Downloads" onclick="openPanel('downloads')">⬇️<span class="badge" id="dl-badge"></span>
+    </button>
 
-    // Tab title/url updated
-    api.onTabUpdated(({ id, title, url }) => {
-      const tab = tabsState.get(id);
-      if (tab) { tab.title = title; tab.url = url; renderTabs(); }
-    });
+    <div class="sep"></div>
 
-    // Tab loading state changed
-    api.onTabLoading(({ id, loading }) => {
-      const tab = tabsState.get(id);
-      if (tab) { tab.loading = loading; renderTabs(); }
-    });
+    <button class="feat-btn" id="btn-screenshot" title="Screenshot (Ctrl+Shift+S)" onclick="api.screenshot()">📷</button>
+    <button class="feat-btn" id="btn-print"      title="Print (Ctrl+P)"            onclick="api.printPage()">🖨️</button>
+    <button class="feat-btn" id="btn-fullscreen" title="Fullscreen (F11)"           onclick="api.toggleFullscreen()">⛶</button>
+  </div>
+</div>
 
-    // Max tabs reached
-    api.onLimitReached((max) => showToast(`Maximum ${max} tabs allowed`));
+<!-- ═══════════════════════════════════════════════════════════
+     FIND BAR
+═══════════════════════════════════════════════════════════════ -->
+<div id="find-bar">
+  <input id="find-input" type="text" placeholder="Find in page…" oninput="doFind()" onkeydown="findKey(event)"/>
+  <span id="find-count" style="color:var(--text-muted)">0 / 0</span>
+  <button class="find-btn" title="Previous" onclick="api.findInPage(document.getElementById('find-input').value, false)">↑</button>
+  <button class="find-btn" title="Next"     onclick="api.findInPage(document.getElementById('find-input').value, true)">↓</button>
+  <button class="find-btn" title="Close"    onclick="closeFind()">✕</button>
+</div>
 
-    // Can't close last tab
-    api.onCloseBlocked(() => showToast('Cannot close the last tab'));
+<!-- ═══════════════════════════════════════════════════════════
+     PANELS OVERLAY
+═══════════════════════════════════════════════════════════════ -->
+<div id="panel-overlay" onclick="closeAllPanels()"></div>
 
-    // ── Tab actions ────────────────────────────────────────────
+<!-- ── PASSWORDS PANEL ── -->
+<div class="panel" id="panel-passwords">
+  <div class="panel-header">
+    <span class="panel-title">🔑 Password Manager</span>
+    <button class="panel-close" onclick="closePanel('passwords')">×</button>
+  </div>
+  <div class="panel-body" id="pw-body">
+    <!-- Save New Password form -->
+    <div class="pw-form">
+      <div class="pw-form-title">💾 Save New Password</div>
+      <input class="pw-input" id="pw-site"     type="text"     placeholder="Site (e.g. arman.ahrtechdiv.com)" />
+      <input class="pw-input" id="pw-username" type="email"    placeholder="Email / Username" />
+      <input class="pw-input" id="pw-password" type="password" placeholder="Password" />
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn btn-primary" style="flex:1" onclick="saveNewPassword()">💾 Save Password</button>
+        <button class="btn btn-secondary" onclick="api.autofillPassword()" title="Auto-fill saved credentials">🔑 Auto-fill</button>
+      </div>
+    </div>
+    <!-- Saved passwords list -->
+    <div class="section-label">Saved Credentials</div>
+    <div id="pw-list"></div>
+  </div>
+</div>
 
-    function openNewTab() {
-      api.openTab(null);   // main.js will use HOME_URL
+<!-- ── BOOKMARKS PANEL ── -->
+<div class="panel" id="panel-bookmarks">
+  <div class="panel-header">
+    <span class="panel-title">⭐ Bookmarks</span>
+    <button class="panel-close" onclick="closePanel('bookmarks')">×</button>
+  </div>
+  <div class="panel-body">
+    <div id="bm-list"></div>
+  </div>
+</div>
+
+<!-- ── HISTORY PANEL ── -->
+<div class="panel" id="panel-history">
+  <div class="panel-header">
+    <span class="panel-title">🕐 History</span>
+    <button class="panel-close" onclick="closePanel('history')">×</button>
+  </div>
+  <div class="panel-body">
+    <div id="hist-list"></div>
+  </div>
+  <div class="panel-actions">
+    <button class="btn btn-danger" style="flex:1" onclick="if(confirm('Clear all history?')) api.clearHistory()">🗑️ Clear History</button>
+  </div>
+</div>
+
+<!-- ── DOWNLOADS PANEL ── -->
+<div class="panel" id="panel-downloads">
+  <div class="panel-header">
+    <span class="panel-title">⬇️ Downloads</span>
+    <button class="panel-close" onclick="closePanel('downloads')">×</button>
+  </div>
+  <div class="panel-body">
+    <div id="dl-list"></div>
+  </div>
+  <div class="panel-actions">
+    <button class="btn btn-secondary" style="flex:1" onclick="api.openDownloads()">📁 Open Downloads Folder</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SAVE PASSWORD PROMPT MODAL (auto-shows on login page)
+═══════════════════════════════════════════════════════════════ -->
+<div id="save-pw-modal">
+  <div class="modal-title">🔑 Save Password for this site?</div>
+  <div class="modal-row">
+    <input class="pw-input" id="modal-user" type="email"    placeholder="Email / Username" style="flex:1;margin-bottom:0"/>
+  </div>
+  <div class="modal-row">
+    <input class="pw-input" id="modal-pass" type="password" placeholder="Password" style="flex:1;margin-bottom:0"/>
+  </div>
+  <div class="modal-btns">
+    <button class="btn btn-secondary btn-sm" onclick="dismissSavePw()">Not now</button>
+    <button class="btn btn-primary  btn-sm" onclick="confirmSavePw()">💾 Save</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TOAST STACK
+═══════════════════════════════════════════════════════════════ -->
+<div id="toast-stack"></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+// ─────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────
+const tabsMap     = new Map();   // id → { id, title, url, loading, canBack, canFwd, pinned, favicon }
+let   activeId    = null;
+let   darkMode    = false;
+let   currentZoom = 1.0;
+let   savePwTabId = null;
+const downloads   = new Map();   // id → { ...dlEntry, percent }
+
+// ─────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────
+api.on('init-state', ({ bookmarks, passwords, history, darkMode: dm }) => {
+  darkMode = dm;
+  document.getElementById('btn-dark').classList.toggle('on', dm);
+  renderBookmarks(bookmarks);
+  renderHistory(history);
+  renderPasswords(passwords);
+});
+
+// ─────────────────────────────────────────────────────────────
+// TAB EVENTS
+// ─────────────────────────────────────────────────────────────
+api.on('tab-opened', d => {
+  tabsMap.set(d.id, { ...d, favicon: null });
+  activeId = d.id;
+  renderTabs();
+  updateNavButtons();
+});
+
+api.on('tab-closed', ({ id, newActiveId }) => {
+  tabsMap.delete(id);
+  activeId = newActiveId;
+  renderTabs();
+  updateNavButtons();
+});
+
+api.on('tab-switched', d => {
+  activeId = d.id;
+  const t = tabsMap.get(d.id);
+  if (t) {
+    document.getElementById('url-bar').value = d.url !== 'about:blank' ? d.url : '';
+    currentZoom = d.zoom || 1.0;
+    updateZoomBadge();
+  }
+  renderTabs();
+  updateNavButtons(d);
+});
+
+api.on('tab-updated', d => {
+  const t = tabsMap.get(d.id);
+  if (t) Object.assign(t, d);
+  if (d.id === activeId) {
+    document.getElementById('url-bar').value = d.url !== 'about:blank' ? d.url : '';
+    updateNavButtons(d);
+  }
+  renderTabs();
+});
+
+api.on('tab-loading', ({ id, loading }) => {
+  const t = tabsMap.get(id);
+  if (t) t.loading = loading;
+  renderTabs();
+});
+
+api.on('tab-favicon', ({ id, favicon }) => {
+  const t = tabsMap.get(id);
+  if (t) t.favicon = favicon;
+  renderTabs();
+});
+
+// ─────────────────────────────────────────────────────────────
+// RENDER TABS
+// ─────────────────────────────────────────────────────────────
+function renderTabs() {
+  const scroll = document.getElementById('tabs-scroll');
+  scroll.innerHTML = '';
+
+  tabsMap.forEach(tab => {
+    const el = document.createElement('div');
+    el.className = 'tab'
+      + (tab.id === activeId ? ' active' : '')
+      + (tab.loading ? ' loading' : '')
+      + (tab.pinned  ? ' pinned'  : '');
+    el.title = tab.url;
+    el.onclick = () => api.switchTab(tab.id);
+
+    // Spinner
+    const spinner = document.createElement('div');
+    spinner.className = 'tab-spinner';
+
+    // Favicon
+    const fav = document.createElement(tab.favicon ? 'img' : 'div');
+    if (tab.favicon) {
+      fav.src = tab.favicon;
+      fav.className = 'tab-favicon';
+      fav.onerror = () => { fav.style.display='none'; };
+    } else {
+      fav.className = 'tab-favicon-placeholder';
     }
 
-    function switchTab(id) {
-      api.switchTab(id);
+    // Title
+    const titleEl = document.createElement('span');
+    titleEl.className = 'tab-title';
+    titleEl.textContent = tab.pinned ? '' : (tab.title || 'New Tab');
+
+    // Close btn
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'tab-close';
+    closeBtn.innerHTML = '×';
+    closeBtn.title = 'Close tab';
+    closeBtn.onclick = e => { e.stopPropagation(); api.closeTab(tab.id); };
+
+    el.appendChild(spinner);
+    el.appendChild(fav);
+    el.appendChild(titleEl);
+    if (!tab.pinned) el.appendChild(closeBtn);
+
+    // Right-click: pin / close
+    el.oncontextmenu = e => {
+      e.preventDefault();
+      e.stopPropagation();
+      showTabContextMenu(tab.id, tab.pinned, e.clientX, e.clientY);
+    };
+
+    scroll.appendChild(el);
+  });
+
+  // Scroll active into view
+  const activeEl = scroll.querySelector('.tab.active');
+  if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+}
+
+// ─────────────────────────────────────────────────────────────
+// TAB CONTEXT MENU (right-click on tab)
+// ─────────────────────────────────────────────────────────────
+let tabCtxMenu = null;
+function showTabContextMenu(tabId, isPinned, x, y) {
+  removeTabContextMenu();
+  const menu = document.createElement('div');
+  menu.style.cssText = `
+    position:fixed; left:${x}px; top:${y}px; z-index:9000;
+    background:var(--bg-deep); border:1px solid var(--border-bright);
+    border-radius:var(--radius); padding:6px; min-width:180px;
+    box-shadow:var(--shadow-lg); font-size:13px;
+  `;
+  const items = [
+    { icon: isPinned ? '📌' : '📌', label: isPinned ? 'Unpin Tab' : 'Pin Tab', fn: () => api.pinTab(tabId) },
+    { icon: '🔄', label: 'Reload Tab', fn: () => api.reload() },
+    { icon: '➕', label: 'New Tab', fn: () => newTab() },
+    { sep: true },
+    { icon: '✕', label: 'Close Tab', fn: () => api.closeTab(tabId), cls: 'danger' },
+  ];
+  items.forEach(it => {
+    if (it.sep) {
+      const s = document.createElement('div');
+      s.style.cssText = 'height:1px;background:var(--border);margin:4px 0;';
+      menu.appendChild(s);
+      return;
+    }
+    const row = document.createElement('div');
+    row.style.cssText = `
+      display:flex;align-items:center;gap:8px;padding:7px 10px;
+      border-radius:var(--radius-sm);cursor:pointer;
+      color:${it.cls==='danger'?'var(--red)':'var(--text-primary)'};
+      transition:background 0.15s;
+    `;
+    row.innerHTML = `<span>${it.icon}</span><span>${it.label}</span>`;
+    row.onmouseenter = () => row.style.background = 'var(--bg-hover)';
+    row.onmouseleave = () => row.style.background = 'transparent';
+    row.onclick = () => { it.fn(); removeTabContextMenu(); };
+    menu.appendChild(row);
+  });
+  document.body.appendChild(menu);
+  tabCtxMenu = menu;
+  document.addEventListener('click', removeTabContextMenu, { once: true });
+}
+function removeTabContextMenu() {
+  if (tabCtxMenu) { tabCtxMenu.remove(); tabCtxMenu = null; }
+}
+
+// ─────────────────────────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────────────────────────
+function newTab() { api.openTab(null); }
+
+function navigateToUrl() {
+  const val = document.getElementById('url-bar').value.trim();
+  if (val) api.navigateTo(val);
+}
+
+document.getElementById('url-bar').addEventListener('keydown', e => {
+  if (e.key === 'Enter') navigateToUrl();
+  if (e.key === 'Escape') e.target.blur();
+});
+
+api.on('focus-urlbar', () => {
+  const bar = document.getElementById('url-bar');
+  bar.select();
+  bar.focus();
+});
+
+function updateNavButtons(data) {
+  const d = data || {};
+  document.getElementById('btn-back').disabled    = !d.canBack;
+  document.getElementById('btn-forward').disabled = !d.canFwd;
+}
+
+// ─────────────────────────────────────────────────────────────
+// ZOOM
+// ─────────────────────────────────────────────────────────────
+api.on('zoom-changed', ({ zoom }) => {
+  currentZoom = zoom;
+  updateZoomBadge();
+});
+
+function updateZoomBadge() {
+  document.getElementById('zoom-badge').textContent = Math.round(currentZoom * 100) + '%';
+}
+
+document.getElementById('url-bar-wrap').addEventListener('wheel', e => {
+  if (e.ctrlKey) {
+    e.preventDefault();
+    if (e.deltaY < 0) api.zoomIn();
+    else api.zoomOut();
+  }
+}, { passive: false });
+
+// ─────────────────────────────────────────────────────────────
+// DARK MODE
+// ─────────────────────────────────────────────────────────────
+api.on('dark-mode-changed', ({ enabled }) => {
+  darkMode = enabled;
+  document.getElementById('btn-dark').classList.toggle('on', enabled);
+});
+
+// ─────────────────────────────────────────────────────────────
+// FULLSCREEN
+// ─────────────────────────────────────────────────────────────
+api.on('fullscreen-change', fs => {
+  document.getElementById('btn-fullscreen').classList.toggle('on', fs);
+  document.getElementById('btn-fullscreen').textContent = fs ? '⛶' : '⛶';
+});
+
+// ─────────────────────────────────────────────────────────────
+// FIND IN PAGE
+// ─────────────────────────────────────────────────────────────
+function toggleFind() {
+  const bar = document.getElementById('find-bar');
+  const open = !bar.classList.contains('open');
+  bar.classList.toggle('open', open);
+  if (open) { document.getElementById('find-input').focus(); document.getElementById('find-input').select(); }
+  else closeFind();
+}
+
+function closeFind() {
+  document.getElementById('find-bar').classList.remove('open');
+  document.getElementById('find-count').textContent = '0 / 0';
+  api.stopFind();
+}
+
+function doFind() {
+  const text = document.getElementById('find-input').value;
+  if (text) api.findInPage(text, true);
+  else document.getElementById('find-count').textContent = '0 / 0';
+}
+
+function findKey(e) {
+  if (e.key === 'Enter') api.findInPage(document.getElementById('find-input').value, !e.shiftKey);
+  if (e.key === 'Escape') closeFind();
+}
+
+api.on('find-toggle', ({ active }) => {
+  document.getElementById('find-bar').classList.toggle('open', active);
+  if (active) document.getElementById('find-input').focus();
+});
+
+api.on('find-result', ({ activeMatch, total }) => {
+  document.getElementById('find-count').textContent = `${activeMatch} / ${total}`;
+  document.getElementById('find-count').style.color = total === 0 ? 'var(--red)' : 'var(--text-secondary)';
+});
+
+// ─────────────────────────────────────────────────────────────
+// PANELS
+// ─────────────────────────────────────────────────────────────
+let openPanelId = null;
+
+function openPanel(name) {
+  if (openPanelId) closePanel(openPanelId);
+  document.getElementById(`panel-${name}`).classList.add('open');
+  document.getElementById('panel-overlay').classList.add('show');
+  openPanelId = name;
+  // Refresh content
+  if (name === 'passwords') api.getPasswords().then(renderPasswords);
+  if (name === 'bookmarks') api.getBookmarks().then(renderBookmarks);
+  if (name === 'history')   api.getHistory().then(renderHistory);
+  if (name === 'downloads') renderDownloads();
+}
+
+function closePanel(name) {
+  document.getElementById(`panel-${name}`).classList.remove('open');
+  document.getElementById('panel-overlay').classList.remove('show');
+  openPanelId = null;
+}
+
+function closeAllPanels() {
+  ['passwords','bookmarks','history','downloads'].forEach(n => {
+    document.getElementById(`panel-${n}`).classList.remove('open');
+  });
+  document.getElementById('panel-overlay').classList.remove('show');
+  openPanelId = null;
+}
+
+// ─────────────────────────────────────────────────────────────
+// BOOKMARKS
+// ─────────────────────────────────────────────────────────────
+function renderBookmarks(list) {
+  const el = document.getElementById('bm-list');
+  const badge = document.getElementById('bm-badge');
+  badge.classList.toggle('show', list.length > 0);
+  if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="ei">⭐</div><p>No bookmarks yet.<br>Press Ctrl+D to bookmark a page.</p></div>'; return; }
+  el.innerHTML = '';
+  list.forEach(b => {
+    const item = makeListItem(
+      '⭐', b.title || b.url, b.url,
+      [
+        { icon: '↗', title: 'Open in new tab', fn: () => api.openTab(b.url) },
+        { icon: '🗑', title: 'Delete', fn: () => api.deleteBookmark(b.url), cls: 'danger' },
+      ],
+      () => { api.navigateTo(b.url); closeAllPanels(); }
+    );
+    el.appendChild(item);
+  });
+}
+
+api.on('bookmarks-updated', renderBookmarks);
+
+// ─────────────────────────────────────────────────────────────
+// HISTORY
+// ─────────────────────────────────────────────────────────────
+function renderHistory(list) {
+  const el = document.getElementById('hist-list');
+  if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="ei">🕐</div><p>No history yet.</p></div>'; return; }
+  el.innerHTML = '';
+  // Group by date
+  let lastDate = '';
+  list.forEach(h => {
+    const d = new Date(h.ts);
+    const dateStr = d.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
+    if (dateStr !== lastDate) {
+      const lbl = document.createElement('div');
+      lbl.className = 'section-label';
+      lbl.textContent = dateStr;
+      el.appendChild(lbl);
+      lastDate = dateStr;
+    }
+    const item = makeListItem(
+      '🔗', h.title || h.url, formatTime(d),
+      [],
+      () => { api.navigateTo(h.url); closeAllPanels(); }
+    );
+    el.appendChild(item);
+  });
+}
+
+api.on('history-updated', renderHistory);
+
+function formatTime(d) {
+  return d.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' });
+}
+
+// ─────────────────────────────────────────────────────────────
+// PASSWORDS
+// ─────────────────────────────────────────────────────────────
+function renderPasswords(list) {
+  const el = document.getElementById('pw-list');
+  const badge = document.getElementById('pw-badge');
+  badge.classList.toggle('show', list.length > 0);
+  if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="ei">🔑</div><p>No saved passwords.<br>Fill the form above to save one.</p></div>'; return; }
+  el.innerHTML = '';
+  list.forEach((p, i) => {
+    const item = makeListItem(
+      '🔑', p.username, p.site,
+      [
+        { icon: '👁', title: 'Reveal password', fn: () => api.revealPassword(p.index ?? i) },
+        { icon: '🗑', title: 'Delete', fn: () => api.deletePassword(p.index ?? i), cls: 'danger' },
+      ]
+    );
+    el.appendChild(item);
+  });
+}
+
+api.on('passwords-updated', renderPasswords);
+
+api.on('password-revealed', ({ index, password }) => {
+  showToast(`Password: ${password}`, 'info', 6000);
+});
+
+function saveNewPassword() {
+  const site = document.getElementById('pw-site').value.trim();
+  const user = document.getElementById('pw-username').value.trim();
+  const pass = document.getElementById('pw-password').value;
+  if (!site || !user || !pass) { showToast('Please fill all fields', 'warn'); return; }
+  api.savePassword({ site, username: user, password: pass });
+  document.getElementById('pw-site').value = '';
+  document.getElementById('pw-username').value = '';
+  document.getElementById('pw-password').value = '';
+}
+
+// ─────────────────────────────────────────────────────────────
+// SAVE PASSWORD MODAL (auto-prompt on login page)
+// ─────────────────────────────────────────────────────────────
+api.on('login-form-detected', ({ tabId }) => {
+  savePwTabId = tabId;
+  const modal = document.getElementById('save-pw-modal');
+  // Only show if we don't already have a password for this site
+  modal.classList.add('show');
+  // Auto-hide after 8 seconds if ignored
+  setTimeout(() => modal.classList.remove('show'), 8000);
+});
+
+function confirmSavePw() {
+  const user = document.getElementById('modal-user').value.trim();
+  const pass = document.getElementById('modal-pass').value;
+  if (user && pass) {
+    api.savePassword({ site: 'arman.ahrtechdiv.com', username: user, password: pass });
+  }
+  document.getElementById('save-pw-modal').classList.remove('show');
+}
+
+function dismissSavePw() {
+  document.getElementById('save-pw-modal').classList.remove('show');
+}
+
+// ─────────────────────────────────────────────────────────────
+// DOWNLOADS
+// ─────────────────────────────────────────────────────────────
+api.on('download-started', dl => {
+  downloads.set(dl.id, { ...dl, percent: 0 });
+  document.getElementById('dl-badge').classList.add('show');
+  renderDownloads();
+  showToast(`Downloading: ${dl.filename}`, 'info');
+});
+
+api.on('download-progress', ({ id, percent }) => {
+  const dl = downloads.get(id);
+  if (dl) { dl.percent = percent; dl.status = 'downloading'; }
+  renderDownloads();
+});
+
+api.on('download-done', ({ id, status, path: p }) => {
+  const dl = downloads.get(id);
+  if (dl) { dl.status = status; dl.percent = 100; dl.path = p; }
+  renderDownloads();
+});
+
+function renderDownloads() {
+  const el = document.getElementById('dl-list');
+  if (!downloads.size) {
+    el.innerHTML = '<div class="empty-state"><div class="ei">⬇️</div><p>No downloads yet.</p></div>';
+    return;
+  }
+  el.innerHTML = '';
+  [...downloads.values()].reverse().forEach(dl => {
+    const wrap = document.createElement('div');
+    wrap.className = 'p-item dl-item';
+
+    const icon = document.createElement('div');
+    icon.className = 'p-item-icon';
+    icon.textContent = dl.status === 'done' ? '✅' : dl.status === 'failed' ? '❌' : '⬇️';
+
+    const body = document.createElement('div');
+    body.className = 'p-item-body';
+    body.innerHTML = `
+      <div class="p-item-title">${esc(dl.filename)}</div>
+      <div class="dl-progress-bar"><div class="dl-progress-fill" style="width:${dl.percent||0}%"></div></div>
+      <div class="dl-status ${dl.status}">${
+        dl.status === 'done' ? '✓ Complete' :
+        dl.status === 'failed' ? '✗ Failed' :
+        `${dl.percent||0}% — ${fmtBytes(dl.received)} / ${fmtBytes(dl.size)}`
+      }</div>
+    `;
+
+    const actions = document.createElement('div');
+    actions.className = 'p-item-actions';
+    if (dl.status === 'done') {
+      const openBtn = document.createElement('button');
+      openBtn.className = 'p-action-btn';
+      openBtn.title = 'Open file';
+      openBtn.textContent = '↗';
+      openBtn.onclick = () => api.openFile(dl.path);
+      actions.appendChild(openBtn);
     }
 
-    function closeTab(id, event) {
-      event.stopPropagation();   // Don't trigger switchTab
-      api.closeTab(id);
-    }
+    wrap.appendChild(icon);
+    wrap.appendChild(body);
+    wrap.appendChild(actions);
+    el.appendChild(wrap);
+  });
+}
 
-    // ── Render ─────────────────────────────────────────────────
+function fmtBytes(b) {
+  if (!b) return '?';
+  if (b < 1024) return b + 'B';
+  if (b < 1048576) return (b/1024).toFixed(1) + 'KB';
+  return (b/1048576).toFixed(1) + 'MB';
+}
 
-    function renderTabs() {
-      tabsScroll.innerHTML = '';
+// ─────────────────────────────────────────────────────────────
+// TOAST SYSTEM
+// ─────────────────────────────────────────────────────────────
+const TOAST_ICONS = { success:'✅', error:'❌', warn:'⚠️', info:'ℹ️' };
 
-      tabsState.forEach(({ id, title, loading }) => {
-        const isActive = id === activeTabId;
+function showToast(msg, type='info', dur=3000) {
+  const stack = document.getElementById('toast-stack');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span class="toast-icon">${TOAST_ICONS[type]||'ℹ️'}</span><span>${esc(msg)}</span>`;
+  stack.appendChild(el);
+  setTimeout(() => {
+    el.classList.add('fade-out');
+    setTimeout(() => el.remove(), 300);
+  }, dur);
+}
 
-        const tabEl = document.createElement('div');
-        tabEl.className = 'tab' + (isActive ? ' active' : '') + (loading ? ' loading' : '');
-        tabEl.title = title;
-        tabEl.onclick = () => switchTab(id);
+api.on('show-toast', ({ msg, type }) => showToast(msg, type));
 
-        // Spinner (shown while loading)
-        const spinner = document.createElement('div');
-        spinner.className = 'tab-spinner';
+// ─────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────
+function makeListItem(icon, title, sub, actions=[], onclick=null) {
+  const item = document.createElement('div');
+  item.className = 'p-item';
+  if (onclick) item.onclick = onclick;
 
-        // Favicon placeholder (shown when not loading)
-        const icon = document.createElement('div');
-        icon.className = 'tab-icon';
+  const iconEl = document.createElement('div');
+  iconEl.className = 'p-item-icon';
+  iconEl.textContent = icon;
 
-        // Title
-        const titleEl = document.createElement('span');
-        titleEl.className = 'tab-title';
-        // Truncate long titles
-        titleEl.textContent = title.length > 20 ? title.substring(0, 20) + '…' : title;
+  const body = document.createElement('div');
+  body.className = 'p-item-body';
+  body.innerHTML = `<div class="p-item-title">${esc(title)}</div><div class="p-item-sub">${esc(sub)}</div>`;
 
-        // Close button
-        const closeBtn = document.createElement('button');
-        closeBtn.className = 'tab-close';
-        closeBtn.innerHTML = '&times;';
-        closeBtn.title = 'Close tab';
-        closeBtn.onclick = (e) => closeTab(id, e);
+  const actEl = document.createElement('div');
+  actEl.className = 'p-item-actions';
+  actions.forEach(a => {
+    const btn = document.createElement('button');
+    btn.className = 'p-action-btn' + (a.cls ? ' ' + a.cls : '');
+    btn.title = a.title; btn.textContent = a.icon;
+    btn.onclick = e => { e.stopPropagation(); a.fn(); };
+    actEl.appendChild(btn);
+  });
 
-        tabEl.appendChild(spinner);
-        tabEl.appendChild(icon);
-        tabEl.appendChild(titleEl);
-        tabEl.appendChild(closeBtn);
-        tabsScroll.appendChild(tabEl);
-      });
+  item.appendChild(iconEl);
+  item.appendChild(body);
+  item.appendChild(actEl);
+  return item;
+}
 
-      // Auto-scroll to active tab
-      scrollToActiveTab();
-    }
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
-    function scrollToActiveTab() {
-      const tabs = tabsScroll.querySelectorAll('.tab');
-      const activeEl = tabsScroll.querySelector('.tab.active');
-      if (activeEl) {
-        activeEl.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
-      }
-    }
-
-    // ── Toast notification ─────────────────────────────────────
-
-    let toastTimer = null;
-    function showToast(message) {
-      const toast = document.getElementById('toast');
-      toast.textContent = message;
-      toast.classList.add('show');
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
-    }
-  </script>
+// Keyboard shortcut hints
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'd') { e.preventDefault(); api.bookmarkToggle(); }
+  if (e.ctrlKey && e.key === 'f') { e.preventDefault(); toggleFind(); }
+  if (e.key === 'Escape') { closeAllPanels(); closeFind(); }
+});
+</script>
 </body>
 </html>
