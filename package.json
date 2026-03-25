@@ -8,8 +8,8 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --publish=never",
-    "build:win": "electron-builder --win",
-    "build:win32": "electron-builder --win --ia32"
+    "build:win": "electron-builder --win --publish=never",
+    "build:win32": "electron-builder --win --ia32 --publish=never"
   },
   "dependencies": {
     "electron-store": "^8.1.0"
@@ -40,6 +40,11 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Smart Store"
     },
-    "publish": "www.ahrtechdiv.com"
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://www.ahrtechdiv.com/downloads/"
+      }
+    ]
   }
 }
