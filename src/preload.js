@@ -1,141 +1,162 @@
-/**
- * Smart Store WMS Desktop App v3.0
- * Preload Script — Secure Bridge Between Main & Renderer
- *
- * Rules:
- *  - contextIsolation: true  → this script runs in isolated world
- *  - nodeIntegration: false  → renderer has NO Node access
- *  - Only explicitly exposed APIs are available to renderer via window.WMS
- */
-
 'use strict';
+
+/**
+ * Smart Store WMS — Preload / Context Bridge
+ * Exposes window.WMS to renderer. NO Node.js access leaks.
+ */
 
 const { contextBridge, ipcRenderer } = require('electron');
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HELPER — safe invoke wrapper
-// ─────────────────────────────────────────────────────────────────────────────
-
-const invoke = (channel, ...args) => ipcRenderer.invoke(channel, ...args);
-const send   = (channel, ...args) => ipcRenderer.send(channel, ...args);
-const on     = (channel, cb)      => {
-  const handler = (_, ...args) => cb(...args);
-  ipcRenderer.on(channel, handler);
-  return () => ipcRenderer.removeListener(channel, handler);
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// EXPOSED API — window.WMS
-// ─────────────────────────────────────────────────────────────────────────────
+const inv = (ch, ...a) => ipcRenderer.invoke(ch, ...a);
+const on  = (ch, cb)   => ipcRenderer.on(ch, (_, ...a) => cb(...a));
 
 contextBridge.exposeInMainWorld('WMS', {
 
-  // ── Tab API ──────────────────────────────────────────────────────────────
   tab: {
-    open:      (url)  => invoke('tab:open', url),
-    close:     (id)   => invoke('tab:close', id),
-    switch:    (id)   => invoke('tab:switch', id),
-    duplicate: (id)   => invoke('tab:duplicate', id),
-    list:      ()     => invoke('tab:list'),
+    open:      (url)  => inv('tab:open', url),
+    close:     (id)   => inv('tab:close', id),
+    switch:    (id)   => inv('tab:switch', id),
+    duplicate: (id)   => inv('tab:duplicate', id),
+    list:      ()     => inv('tab:list'),
   },
 
-  // ── Navigation API ───────────────────────────────────────────────────────
   nav: {
-    back:       ()    => invoke('nav:back'),
-    forward:    ()    => invoke('nav:forward'),
-    reload:     ()    => invoke('nav:reload'),
-    hardReload: ()    => invoke('nav:hard-reload'),
-    stop:       ()    => invoke('nav:stop'),
-    home:       ()    => invoke('nav:home'),
-    goto:       (url) => invoke('nav:goto', url),
+    back:       ()    => inv('nav:back'),
+    forward:    ()    => inv('nav:forward'),
+    reload:     ()    => inv('nav:reload'),
+    hardReload: ()    => inv('nav:hard-reload'),
+    stop:       ()    => inv('nav:stop'),
+    home:       ()    => inv('nav:home'),
+    goto:       (url) => inv('nav:goto', url),
   },
 
-  // ── Zoom API ─────────────────────────────────────────────────────────────
   zoom: {
-    set:   (tabId, factor) => invoke('zoom:set',   { tabId, factor }),
-    in:    ()              => invoke('zoom:in'),
-    out:   ()              => invoke('zoom:out'),
-    reset: ()              => invoke('zoom:reset'),
+    set:   (tabId, factor) => inv('zoom:set', { tabId, factor }),
+    in:    ()              => inv('zoom:in'),
+    out:   ()              => inv('zoom:out'),
+    reset: ()              => inv('zoom:reset'),
   },
 
-  // ── Find in Page ─────────────────────────────────────────────────────────
   find: {
-    start: (text, options) => invoke('find:start', { text, options }),
-    stop:  ()              => invoke('find:stop'),
+    start: (text, options) => inv('find:start', { text, options }),
+    stop:  ()              => inv('find:stop'),
   },
 
-  // ── Page Actions ─────────────────────────────────────────────────────────
   page: {
-    print:      () => invoke('page:print'),
-    savePDF:    () => invoke('page:save-pdf'),
-    screenshot: () => invoke('page:screenshot'),
+    print:      () => inv('page:print'),
+    savePDF:    () => inv('page:save-pdf'),
+    screenshot: () => inv('page:screenshot'),
   },
 
-  // ── Downloads ─────────────────────────────────────────────────────────────
   downloads: {
-    getAll:     () => invoke('downloads:get-all'),
-    openFolder: () => invoke('downloads:open-folder'),
+    getAll:     ()  => inv('downloads:get-all'),
+    openFolder: ()  => inv('downloads:open-folder'),
+    openFile:   (p) => inv('downloads:open-file', p),
   },
 
-  // ── Bookmarks ─────────────────────────────────────────────────────────────
   bookmarks: {
-    get:    ()               => invoke('bookmarks:get'),
-    add:    (url, title)     => invoke('bookmarks:add', { url, title }),
-    remove: (url)            => invoke('bookmarks:remove', url),
+    get:    ()             => inv('bookmarks:get'),
+    add:    (url, title)   => inv('bookmarks:add', { url, title }),
+    remove: (url)          => inv('bookmarks:remove', url),
   },
 
-  // ── History ───────────────────────────────────────────────────────────────
   history: {
-    get:   ()  => invoke('history:get'),
-    clear: ()  => invoke('history:clear'),
+    get:   () => inv('history:get'),
+    clear: () => inv('history:clear'),
   },
 
-  // ── Settings ──────────────────────────────────────────────────────────────
   settings: {
-    get:  ()  => invoke('settings:get'),
-    save: (s) => invoke('settings:save', s),
+    get:  ()  => inv('settings:get'),
+    save: (s) => inv('settings:save', s),
   },
 
-  // ── Credentials ───────────────────────────────────────────────────────────
-  credentials: {
-    save:     (domain, username, password) => invoke('credentials:save', { domain, username, password }),
-    get:      (domain)                     => invoke('credentials:get', domain),
-    delete:   (domain)                     => invoke('credentials:delete', domain),
-    autofill: ()                           => invoke('credentials:autofill'),
-    list:     ()                           => invoke('credentials:list'),
-    /** Called from injected script in BrowserView */
-    promptSave: (username, password)       => send('credentials:prompt-save', { username, password }),
+  /**
+   * Password Manager API
+   * All sensitive operations (decrypt, encrypt) happen in main process only.
+   */
+  pm: {
+    /** Save or update a credential */
+    save: (domain, username, password, label) =>
+      inv('pm:save', { domain, username, password, label }),
+
+    /** List all sites + accounts (NO passwords) */
+    list: () => inv('pm:list'),
+
+    /** Delete one account by id */
+    deleteAccount: (domain, accountId) =>
+      inv('pm:delete-account', { domain, accountId }),
+
+    /** Delete all accounts for a domain */
+    deleteDomain: (domain) => inv('pm:delete-domain', domain),
+
+    /** Toggle never-save */
+    setNeverSave: (domain, flag) =>
+      inv('pm:set-never-save', { domain, flag }),
+
+    /** Toggle autofill disabled for a domain */
+    setAutoFillDisabled: (domain, flag) =>
+      inv('pm:set-autofill-disabled', { domain, flag }),
+
+    /** Manually trigger autofill on the active tab */
+    autofillNow: () => inv('pm:autofill-now'),
+
+    /** Get a decrypted password (master-password gated in UI) */
+    getPassword: (domain, accountId) =>
+      inv('pm:get-password', { domain, accountId }),
+
+    /** Update account label */
+    updateLabel: (domain, accountId, label) =>
+      inv('pm:update-label', { domain, accountId, label }),
+
+    /** Master password status { set, hint } */
+    masterStatus: () => inv('pm:master-status'),
+
+    /** Set master password */
+    setMaster: (password, hint) =>
+      inv('pm:set-master', { password, hint }),
+
+    /** Verify master password → { ok } */
+    verifyMaster: (password) => inv('pm:verify-master', { password }),
+
+    /** Clear master password */
+    clearMaster: () => inv('pm:clear-master'),
+
+    /** Export encrypted backup (opens save dialog) */
+    export: (password) => inv('pm:export', { password }),
+
+    /** Import encrypted backup (opens open dialog) */
+    import: (password) => inv('pm:import', { password }),
   },
 
-  // ── Window Controls ───────────────────────────────────────────────────────
   window: {
-    minimize:   () => invoke('window:minimize'),
-    maximize:   () => invoke('window:maximize'),
-    close:      () => invoke('window:close'),
-    fullscreen: () => invoke('window:fullscreen'),
-    devtools:   () => invoke('window:devtools'),
+    minimize:   () => inv('window:minimize'),
+    maximize:   () => inv('window:maximize'),
+    close:      () => inv('window:close'),
+    fullscreen: () => inv('window:fullscreen'),
+    devtools:   () => inv('window:devtools'),
   },
 
-  // ── App Info ──────────────────────────────────────────────────────────────
   app: {
-    version: () => invoke('app:version'),
+    version: () => inv('app:version'),
   },
 
-  // ── Event Listeners (renderer ← main) ────────────────────────────────────
+  /** IPC event subscriptions */
   on: {
-    tabCreated:          (cb) => on('wms:tab-created',          cb),
-    tabClosed:           (cb) => on('wms:tab-closed',           cb),
-    tabUpdated:          (cb) => on('wms:tab-updated',          cb),
-    tabSwitched:         (cb) => on('wms:tab-switched',         cb),
-    tabLoading:          (cb) => on('wms:tab-loading',          cb),
-    navState:            (cb) => on('wms:nav-state',            cb),
-    downloadStart:       (cb) => on('wms:download-start',       cb),
-    downloadProgress:    (cb) => on('wms:download-progress',    cb),
-    downloadDone:        (cb) => on('wms:download-done',        cb),
-    notification:        (cb) => on('wms:notification',         cb),
-    blocked:             (cb) => on('wms:blocked',              cb),
-    error:               (cb) => on('wms:error',                cb),
-    fullscreen:          (cb) => on('wms:fullscreen',           cb),
-    credentialsPrompt:   (cb) => on('wms:credentials-prompt',   cb),
+    tabCreated:    (cb) => on('wms:tab-created', cb),
+    tabClosed:     (cb) => on('wms:tab-closed', cb),
+    tabUpdated:    (cb) => on('wms:tab-updated', cb),
+    tabSwitched:   (cb) => on('wms:tab-switched', cb),
+    tabLoading:    (cb) => on('wms:tab-loading', cb),
+    navState:      (cb) => on('wms:nav-state', cb),
+    findResult:    (cb) => on('wms:find-result', cb),
+    downloadStart: (cb) => on('wms:download-start', cb),
+    downloadProgress: (cb) => on('wms:download-progress', cb),
+    downloadDone:  (cb) => on('wms:download-done', cb),
+    notification:  (cb) => on('wms:notification', cb),
+    blocked:       (cb) => on('wms:blocked', cb),
+    error:         (cb) => on('wms:error', cb),
+    fullscreen:    (cb) => on('wms:fullscreen', cb),
+    /** Fired when the page submits a login form — prompt user to save */
+    credentialsPrompt: (cb) => on('wms:credentials-prompt', cb),
   },
 });

@@ -1112,6 +1112,162 @@
     }
     #fullscreen-indicator.visible { display: block; }
 
+    /* ═══════════════════════════════════════════════════════════════
+       PASSWORD MANAGER PANEL
+    ═══════════════════════════════════════════════════════════════ */
+    #panel-passwords { width: 420px; right: -440px; }
+    .pm-tab {
+      flex: 1; padding: 10px 4px;
+      font-size: 11px; font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: all var(--transition);
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+    .pm-tab:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+    .pm-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .pm-account-card {
+      background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: var(--radius); margin-bottom: 8px; overflow: hidden;
+      transition: border-color var(--transition);
+    }
+    .pm-account-card:hover { border-color: var(--border-light); }
+    .pm-account-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; cursor: pointer;
+    }
+    .pm-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .pm-account-info { flex: 1; overflow: hidden; }
+    .pm-account-label { font-size: 13px; color: var(--text-primary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pm-account-user  { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+    .pm-account-meta  { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+    .pm-account-chevron { color: var(--icon); font-size: 11px; transition: transform .2s; flex-shrink: 0; }
+    .pm-account-card.expanded .pm-account-chevron { transform: rotate(90deg); }
+    .pm-account-body { display: none; padding: 0 12px 12px; border-top: 1px solid var(--border); }
+    .pm-account-card.expanded .pm-account-body { display: block; }
+    .pm-field-row {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 6px 10px; margin-top: 8px;
+    }
+    .pm-field-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); min-width: 60px; }
+    .pm-field-value { flex: 1; font-size: 12px; color: var(--text-primary); font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pm-field-icon  { color: var(--icon); font-size: 12px; cursor: pointer; transition: color var(--transition); flex-shrink: 0; }
+    .pm-field-icon:hover { color: var(--accent); }
+    .pm-account-actions { display: flex; gap: 6px; margin-top: 10px; }
+    .pm-act-btn {
+      flex: 1; padding: 6px 8px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: var(--bg-panel);
+      color: var(--text-secondary); font-size: 11px;
+      display: flex; align-items: center; justify-content: center; gap: 4px;
+      cursor: pointer; transition: all var(--transition);
+    }
+    .pm-act-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .pm-act-btn.danger:hover { border-color: var(--error); color: var(--error); }
+    .pm-input {
+      width: 100%; background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 8px 12px;
+      color: var(--text-primary); font-size: 12px; font-family: inherit;
+      outline: none; transition: border-color var(--transition);
+    }
+    .pm-input:focus { border-color: var(--accent); }
+    .pm-action-btn {
+      width: 100%; display: flex; align-items: center; justify-content: center;
+      gap: 8px; padding: 9px; background: var(--bg-tertiary);
+      border: 1px solid var(--border-light); border-radius: var(--radius-sm);
+      color: var(--text-secondary); font-size: 12px; font-weight: 500;
+      cursor: pointer; transition: all var(--transition); font-family: inherit;
+    }
+    .pm-action-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .pm-domain-header {
+      display: flex; align-items: center; gap: 8px; padding: 6px 4px 4px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--text-muted);
+    }
+    /* Save PW Prompt */
+    #save-pw-prompt {
+      position: fixed; bottom: 24px; right: 20px; z-index: 9990;
+      background: var(--bg-panel); border: 1px solid var(--accent);
+      border-radius: 12px; padding: 14px 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.55);
+      display: flex; align-items: center; gap: 12px;
+      min-width: 300px; max-width: 380px;
+      animation: slideIn .25s ease;
+    }
+    .spw-icon { font-size: 22px; color: var(--accent); flex-shrink: 0; }
+    .spw-body { flex: 1; overflow: hidden; }
+    .spw-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .spw-user  { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+    .spw-actions { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+    .spw-btn {
+      padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 600;
+      border: 1px solid var(--border); color: var(--text-secondary);
+      cursor: pointer; white-space: nowrap; transition: all var(--transition); font-family: inherit; background: none;
+    }
+    .spw-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+    .spw-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .spw-btn.primary:hover { background: var(--accent-hover); }
+    .spw-btn.danger { border-color: var(--error); color: var(--error); }
+    .spw-btn.danger:hover { background: var(--error); color: #fff; }
+    /* Master PW Modal */
+    #master-pw-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 9991; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    #master-pw-overlay.visible { display: flex; }
+    #master-pw-modal {
+      background: var(--bg-panel); border: 1px solid var(--border-light);
+      border-radius: 14px; padding: 28px 28px 22px; width: 340px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.7); animation: popIn .25s ease; text-align: center;
+    }
+    .mpw-icon {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; color: #fff; margin: 0 auto 14px;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    #master-pw-modal h3 { font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+    #master-pw-modal p  { font-size: 12px; color: var(--text-secondary); margin-bottom: 14px; }
+    #mpw-input, #mpw-confirm, #mpw-hint-input {
+      width: 100%; background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 9px 12px; color: var(--text-primary);
+      font-size: 13px; font-family: inherit; outline: none; text-align: left;
+      transition: border-color var(--transition);
+    }
+    #mpw-input:focus, #mpw-confirm:focus, #mpw-hint-input:focus { border-color: var(--accent); }
+    /* Reveal PW Modal */
+    #reveal-pw-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 9992; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    #reveal-pw-overlay.visible { display: flex; }
+    #reveal-pw-modal {
+      background: var(--bg-panel); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 24px; width: 340px;
+      box-shadow: 0 16px 50px rgba(0,0,0,.65); animation: popIn .25s ease;
+    }
+    #reveal-pw-modal h3 { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+    #rpw-master-input {
+      width: 100%; background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 8px 12px; color: var(--text-primary);
+      font-size: 13px; font-family: inherit; outline: none;
+      transition: border-color var(--transition);
+    }
+    #rpw-master-input:focus { border-color: var(--accent); }
+    .pm-master-card {
+      background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 12px 14px;
+    }
+    .pm-site-row {
+      display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+      background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); margin-bottom: 6px;
+    }
+    .pm-site-domain { flex: 1; font-size: 12px; color: var(--text-primary); }
+    .pm-site-tag { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; flex-shrink: 0; }
+    .pm-site-tag.never { background: rgba(239,68,68,.15); color: var(--error); }
+    .pm-site-tag.nofill { background: rgba(245,158,11,.15); color: var(--warning); }
+
   </style>
 </head>
 <body>
@@ -1167,7 +1323,8 @@
     <button class="action-btn" id="btn-print"      title="Print (Ctrl+P)"><i class="fa fa-print"></i></button>
     <button class="action-btn" id="btn-pdf"        title="Save as PDF"><i class="fa fa-file-pdf"></i></button>
     <button class="action-btn" id="btn-bookmark"   title="Bookmark this page"><i class="fa fa-bookmark"></i></button>
-    <button class="action-btn" id="btn-autofill"   title="Fill Credentials"><i class="fa fa-key"></i></button>
+    <button class="action-btn" id="btn-passwords"  title="Password Manager"><i class="fa fa-shield-halved"></i></button>
+    <button class="action-btn" id="btn-autofill"   title="Auto-Fill Now"><i class="fa fa-key"></i></button>
     <button class="action-btn" id="btn-downloads"  title="Downloads"><i class="fa fa-download"></i></button>
     <button class="action-btn" id="btn-bookmarks"  title="Bookmarks"><i class="fa fa-star"></i></button>
     <button class="action-btn" id="btn-history"    title="History"><i class="fa fa-clock-rotate-left"></i></button>
@@ -1247,6 +1404,10 @@
 
         <div class="omenu-divider"></div>
         <div class="omenu-section-label">Panels</div>
+        <button class="omenu-item" id="om-passwords">
+          <i class="fa fa-shield-halved omenu-icon"></i>
+          <span>Password Manager</span>
+        </button>
         <button class="omenu-item" id="om-bookmarks">
           <i class="fa fa-bookmark omenu-icon"></i>
           <span>Bookmarks</span>
@@ -1434,8 +1595,172 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════
-     CREDENTIALS SAVE PROMPT
+     PASSWORD MANAGER PANEL
 ═══════════════════════════════════════════════════════════════ -->
+<div class="side-panel" id="panel-passwords" style="width:420px;right:-440px;">
+  <div class="panel-header">
+    <span class="panel-title"><i class="fa fa-shield-halved"></i> Password Manager</span>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button class="action-btn" id="pm-btn-lock"    title="Lock / Master Password" style="width:28px;height:28px;font-size:12px;"><i class="fa fa-lock"></i></button>
+      <button class="panel-close" data-panel="passwords"><i class="fa fa-xmark"></i></button>
+    </div>
+  </div>
+
+  <!-- PM Sub-nav tabs -->
+  <div id="pm-tabs" style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0;">
+    <button class="pm-tab active" data-pm-tab="accounts">
+      <i class="fa fa-user-shield"></i> Accounts
+    </button>
+    <button class="pm-tab" data-pm-tab="settings">
+      <i class="fa fa-sliders"></i> Settings
+    </button>
+    <button class="pm-tab" data-pm-tab="backup">
+      <i class="fa fa-cloud-arrow-up"></i> Backup
+    </button>
+  </div>
+
+  <!-- ACCOUNTS TAB -->
+  <div class="pm-tab-content" id="pm-tab-accounts">
+    <!-- Search -->
+    <div style="padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:8px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0 10px;height:32px;">
+        <i class="fa fa-magnifying-glass" style="color:var(--icon);font-size:11px;"></i>
+        <input type="text" id="pm-search" placeholder="Search accounts…" style="flex:1;font-size:12px;background:transparent;color:var(--text-primary);border:none;outline:none;" />
+      </div>
+    </div>
+    <!-- Autofill button -->
+    <div style="padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <button id="pm-autofill-btn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:8px;background:var(--accent);color:#fff;border-radius:var(--radius-sm);font-size:12px;font-weight:600;border:none;cursor:pointer;transition:background .15s;">
+        <i class="fa fa-magic-wand-sparkles"></i> Auto-Fill Current Page
+      </button>
+    </div>
+    <!-- Accounts list -->
+    <div class="panel-body" id="pm-accounts-list"></div>
+  </div>
+
+  <!-- SETTINGS TAB -->
+  <div class="pm-tab-content" id="pm-tab-settings" style="display:none;">
+    <div class="panel-body">
+
+      <div class="panel-section-label">Master Password</div>
+      <div id="pm-master-section">
+        <!-- rendered dynamically -->
+      </div>
+
+      <div class="panel-section-label" style="margin-top:16px;">Auto-Fill Options</div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Auto-Fill on Login Page</div>
+          <div class="settings-sub">Fill credentials automatically when form is detected</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="pm-toggle-autofill" checked />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="panel-section-label" style="margin-top:16px;">Site-Specific Settings</div>
+      <div id="pm-site-settings-list">
+        <div style="font-size:12px;color:var(--text-muted);padding:8px 0;">No saved sites yet.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- BACKUP TAB -->
+  <div class="pm-tab-content" id="pm-tab-backup" style="display:none;">
+    <div class="panel-body">
+      <div class="panel-section-label">Export Backup</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Export your passwords encrypted with a password. Only you can open this backup.</p>
+      <input type="password" id="pm-export-pw" placeholder="Set export password…" class="pm-input" />
+      <input type="password" id="pm-export-pw2" placeholder="Confirm password…" class="pm-input" style="margin-top:6px;" />
+      <button id="pm-export-btn" class="pm-action-btn" style="margin-top:8px;">
+        <i class="fa fa-file-export"></i> Export Encrypted Backup
+      </button>
+
+      <div class="panel-section-label" style="margin-top:20px;">Import Backup</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Import from a previously exported backup file. This will merge with existing saved passwords.</p>
+      <input type="password" id="pm-import-pw" placeholder="Backup password…" class="pm-input" />
+      <button id="pm-import-btn" class="pm-action-btn" style="margin-top:8px;">
+        <i class="fa fa-file-import"></i> Import Backup File
+      </button>
+
+      <div class="panel-section-label" style="margin-top:20px;">Danger Zone</div>
+      <button id="pm-delete-all-btn" class="pm-action-btn" style="background:var(--error);border-color:var(--error);color:#fff;margin-top:4px;">
+        <i class="fa fa-trash"></i> Delete ALL Saved Passwords
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SAVE PASSWORD PROMPT (bottom-right notification style)
+═══════════════════════════════════════════════════════════════ -->
+<div id="save-pw-prompt" style="display:none;">
+  <div class="spw-icon"><i class="fa fa-shield-halved"></i></div>
+  <div class="spw-body">
+    <div class="spw-title">Save password?</div>
+    <div class="spw-user" id="spw-user-label">user@example.com</div>
+  </div>
+  <div class="spw-actions">
+    <button id="spw-save"   class="spw-btn primary">Save</button>
+    <button id="spw-update" class="spw-btn primary" style="display:none;">Update</button>
+    <button id="spw-no"     class="spw-btn">Not now</button>
+    <button id="spw-never"  class="spw-btn danger">Never</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MASTER PASSWORD MODAL
+═══════════════════════════════════════════════════════════════ -->
+<div id="master-pw-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9991;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+  <div id="master-pw-modal">
+    <div class="mpw-icon"><i class="fa fa-lock"></i></div>
+    <h3 id="mpw-title">Enter Master Password</h3>
+    <p id="mpw-subtitle">Unlock the Password Manager to view saved passwords.</p>
+    <div id="mpw-hint-row" style="display:none;margin-bottom:10px;">
+      <span style="font-size:11px;color:var(--text-muted);">Hint: </span>
+      <span id="mpw-hint" style="font-size:11px;color:var(--text-secondary);font-style:italic;"></span>
+    </div>
+    <input type="password" id="mpw-input" placeholder="Master password…" autocomplete="off" />
+    <div id="mpw-confirm-row" style="display:none;">
+      <input type="password" id="mpw-confirm" placeholder="Confirm master password…" autocomplete="off" style="margin-top:8px;" />
+      <input type="text" id="mpw-hint-input" placeholder="Password hint (optional)…" autocomplete="off" style="margin-top:8px;" />
+    </div>
+    <div id="mpw-error" style="display:none;font-size:12px;color:var(--error);margin-top:8px;text-align:center;"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn-primary" id="mpw-confirm-btn">Unlock</button>
+      <button class="btn-ghost"   id="mpw-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     REVEAL PASSWORD MODAL
+═══════════════════════════════════════════════════════════════ -->
+<div id="reveal-pw-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9992;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+  <div id="reveal-pw-modal">
+    <h3><i class="fa fa-eye" style="color:var(--accent);margin-right:8px;"></i>Reveal Password</h3>
+    <p id="rpw-label" style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;"></p>
+    <div id="rpw-master-section">
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Enter master password to reveal:</p>
+      <input type="password" id="rpw-master-input" placeholder="Master password…" autocomplete="off" />
+      <div id="rpw-error" style="display:none;font-size:12px;color:var(--error);margin-top:6px;"></div>
+    </div>
+    <div id="rpw-result" style="display:none;margin-top:12px;">
+      <div style="display:flex;align-items:center;gap:8px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;">
+        <input type="text" id="rpw-value" readonly style="flex:1;font-size:13px;font-family:monospace;background:transparent;color:var(--text-primary);border:none;outline:none;" />
+        <button id="rpw-copy" title="Copy" style="color:var(--accent);font-size:13px;"><i class="fa fa-copy"></i></button>
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn-primary" id="rpw-submit-btn">Reveal</button>
+      <button class="btn-ghost"   id="rpw-close-btn">Close</button>
+    </div>
+  </div>
+</div>
+
+
 <div id="cred-modal-overlay">
   <div id="cred-modal">
     <h3><i class="fa fa-shield-halved" style="color:var(--accent);margin-right:8px"></i>Save Password?</h3>
@@ -1520,6 +1845,8 @@ async function init() {
   setupListeners();
   setupIPCListeners();
   setupKeyboardShortcuts();
+  setupPMListeners();
+  await PM.setup();
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -2290,7 +2617,622 @@ function escHtml(str) {
 /* ────────────────────────────────────────────────────────────────
    START
 ──────────────────────────────────────────────────────────────── */
+/* ────────────────────────────────────────────────────────────────
+   PASSWORD MANAGER
+──────────────────────────────────────────────────────────────── */
+
+const PM = {
+  // State
+  masterUnlocked: false,
+  pendingReveal: null,   // { domain, accountId, resolve }
+  pendingCred: null,     // { username, password, domain }
+  currentTab: 'accounts',
+
+  /** Called once from init() */
+  async setup() {
+    this.bindTabNav();
+    this.bindBackupTab();
+    this.bindAutofillBtn();
+    this.bindLockBtn();
+    await this.renderAccountsTab();
+    await this.renderSettingsTab();
+
+    // IPC: page submitted a login form
+    WMS.on.credentialsPrompt(async ({ username, password, domain }) => {
+      this.pendingCred = { username, password, domain };
+      // Check if we already have this username
+      const all = await WMS.pm.list();
+      const site = all.find(s => s.domain === domain);
+      const hasThis = site?.accounts?.some(a => a.username === username);
+      this.showSavePwPrompt(username, domain, hasThis);
+    });
+  },
+
+  // ── TAB NAVIGATION ────────────────────────────────────────────
+
+  bindTabNav() {
+    document.querySelectorAll('.pm-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.pm-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.pmTab;
+        document.querySelectorAll('.pm-tab-content').forEach(c => c.style.display = 'none');
+        $(`pm-tab-${tab}`).style.display = 'flex';
+        $(`pm-tab-${tab}`).style.flexDirection = 'column';
+        $(`pm-tab-${tab}`).style.flex = '1';
+        $(`pm-tab-${tab}`).style.overflow = 'hidden';
+        this.currentTab = tab;
+        if (tab === 'accounts') this.renderAccountsTab();
+        if (tab === 'settings') this.renderSettingsTab();
+      });
+    });
+    // Set initial display
+    $('pm-tab-accounts').style.cssText = 'display:flex;flex-direction:column;flex:1;overflow:hidden;';
+    $('pm-tab-settings').style.display = 'none';
+    $('pm-tab-backup').style.display = 'none';
+  },
+
+  // ── ACCOUNTS TAB ──────────────────────────────────────────────
+
+  async renderAccountsTab(filter = '') {
+    const list = $('pm-accounts-list');
+    const all  = await WMS.pm.list();
+    const q    = filter.toLowerCase().trim();
+
+    // Filter accounts
+    let sites = all.filter(s => s.accounts.length > 0);
+    if (q) {
+      sites = sites.map(s => ({
+        ...s,
+        accounts: s.accounts.filter(a =>
+          a.username.toLowerCase().includes(q) ||
+          (a.label || '').toLowerCase().includes(q) ||
+          s.domain.toLowerCase().includes(q)
+        )
+      })).filter(s => s.accounts.length > 0);
+    }
+
+    if (!sites.length) {
+      list.innerHTML = `
+        <div class="panel-empty">
+          <i class="fa fa-shield-halved"></i>
+          ${q ? 'No matches found' : 'No saved passwords yet.<br>They\'ll appear here when you log in.'}
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = '';
+    sites.forEach(site => {
+      const domHdr = document.createElement('div');
+      domHdr.className = 'pm-domain-header';
+      domHdr.innerHTML = `<i class="fa fa-globe"></i><span>${escHtml(site.domain)}</span>`;
+      list.appendChild(domHdr);
+
+      site.accounts.forEach(acc => {
+        const card = this.buildAccountCard(site.domain, acc);
+        list.appendChild(card);
+      });
+    });
+  },
+
+  buildAccountCard(domain, acc) {
+    const card = document.createElement('div');
+    card.className = 'pm-account-card';
+    card.dataset.id = acc.id;
+
+    const initial = (acc.label || acc.username || '?').charAt(0).toUpperCase();
+    const lastUsed = acc.lastUsed
+      ? 'Last used ' + new Date(acc.lastUsed).toLocaleDateString()
+      : 'Never used';
+    const savedDate = acc.savedAt ? new Date(acc.savedAt).toLocaleDateString() : '';
+
+    card.innerHTML = `
+      <div class="pm-account-header">
+        <div class="pm-avatar">${escHtml(initial)}</div>
+        <div class="pm-account-info">
+          <div class="pm-account-label">${escHtml(acc.label || acc.username)}</div>
+          <div class="pm-account-user">${escHtml(acc.username)}</div>
+          <div class="pm-account-meta">${escHtml(lastUsed)} · Saved ${escHtml(savedDate)}</div>
+        </div>
+        <i class="fa fa-chevron-right pm-account-chevron"></i>
+      </div>
+      <div class="pm-account-body">
+        <div class="pm-field-row">
+          <span class="pm-field-label">Username</span>
+          <span class="pm-field-value">${escHtml(acc.username)}</span>
+          <i class="fa fa-copy pm-field-icon" title="Copy username" data-copy="${escHtml(acc.username)}"></i>
+        </div>
+        <div class="pm-field-row">
+          <span class="pm-field-label">Password</span>
+          <span class="pm-field-value" style="filter:blur(4px);transition:filter .2s;" id="pwval-${escHtml(acc.id)}">••••••••••</span>
+          <i class="fa fa-eye pm-field-icon" title="Reveal password" data-reveal-domain="${escHtml(domain)}" data-reveal-id="${escHtml(acc.id)}"></i>
+          <i class="fa fa-copy pm-field-icon" title="Copy password" data-copy-pw-domain="${escHtml(domain)}" data-copy-pw-id="${escHtml(acc.id)}"></i>
+        </div>
+        <div class="pm-account-actions">
+          <button class="pm-act-btn" data-fill-domain="${escHtml(domain)}" data-fill-user="${escHtml(acc.username)}" title="Fill this account">
+            <i class="fa fa-magic-wand-sparkles"></i> Fill
+          </button>
+          <button class="pm-act-btn" data-edit-domain="${escHtml(domain)}" data-edit-id="${escHtml(acc.id)}" data-edit-label="${escHtml(acc.label || acc.username)}" title="Rename label">
+            <i class="fa fa-pen"></i> Rename
+          </button>
+          <button class="pm-act-btn danger" data-del-domain="${escHtml(domain)}" data-del-id="${escHtml(acc.id)}" title="Delete this account">
+            <i class="fa fa-trash"></i> Delete
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Toggle expand
+    card.querySelector('.pm-account-header').addEventListener('click', () => {
+      card.classList.toggle('expanded');
+    });
+
+    // Copy username
+    card.querySelectorAll('[data-copy]').forEach(el => {
+      el.addEventListener('click', e => { e.stopPropagation(); navigator.clipboard?.writeText(el.dataset.copy); showToast('Copied!', 'success', 1500); });
+    });
+
+    // Reveal password
+    card.querySelectorAll('[data-reveal-domain]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        PM.openRevealModal(el.dataset.revealDomain, el.dataset.revealId, acc.username);
+      });
+    });
+
+    // Copy password (requires reveal)
+    card.querySelectorAll('[data-copy-pw-domain]').forEach(el => {
+      el.addEventListener('click', async e => {
+        e.stopPropagation();
+        const r = await PM.getPasswordWithMaster(el.dataset.copyPwDomain, el.dataset.copyPwId);
+        if (r) { navigator.clipboard?.writeText(r); showToast('Password copied!', 'success', 1800); }
+      });
+    });
+
+    // Fill
+    card.querySelectorAll('[data-fill-domain]').forEach(el => {
+      el.addEventListener('click', async e => {
+        e.stopPropagation();
+        await WMS.pm.autofillNow();
+        showToast('Auto-filling…', 'info', 1500);
+        closeAllPanels();
+      });
+    });
+
+    // Rename
+    card.querySelectorAll('[data-edit-domain]').forEach(el => {
+      el.addEventListener('click', async e => {
+        e.stopPropagation();
+        const newLabel = prompt('Enter new label:', el.dataset.editLabel);
+        if (newLabel && newLabel.trim()) {
+          await WMS.pm.updateLabel(el.dataset.editDomain, el.dataset.editId, newLabel.trim());
+          await PM.renderAccountsTab($('pm-search')?.value || '');
+          showToast('Label updated', 'success', 1500);
+        }
+      });
+    });
+
+    // Delete
+    card.querySelectorAll('[data-del-domain]').forEach(el => {
+      el.addEventListener('click', async e => {
+        e.stopPropagation();
+        if (!confirm(`Delete saved password for ${acc.username}?`)) return;
+        await WMS.pm.deleteAccount(el.dataset.delDomain, el.dataset.delId);
+        await PM.renderAccountsTab($('pm-search')?.value || '');
+        showToast('Account deleted', 'info', 1800);
+      });
+    });
+
+    return card;
+  },
+
+  // ── SEARCH ─────────────────────────────────────────────────────
+  bindAutofillBtn() {
+    const searchInput = $('pm-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', () => PM.renderAccountsTab(searchInput.value));
+    }
+
+    const afBtn = $('pm-autofill-btn');
+    if (afBtn) {
+      afBtn.addEventListener('click', async () => {
+        await WMS.pm.autofillNow();
+        showToast('Auto-filling current page…', 'info', 1800);
+        closeAllPanels();
+      });
+    }
+  },
+
+  // ── SETTINGS TAB ──────────────────────────────────────────────
+
+  async renderSettingsTab() {
+    await this.renderMasterSection();
+    await this.renderSiteSettings();
+  },
+
+  async renderMasterSection() {
+    const sec    = $('pm-master-section');
+    const status = await WMS.pm.masterStatus();
+    if (!sec) return;
+
+    if (status.set) {
+      sec.innerHTML = `
+        <div class="pm-master-card">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <span style="font-size:20px;color:var(--success);">🔒</span>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text-primary);">Master Password Set</div>
+              <div style="font-size:11px;color:var(--text-muted);">${status.hint ? 'Hint: ' + escHtml(status.hint) : 'No hint set'}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="pm-action-btn" id="pm-change-master" style="flex:1;">
+              <i class="fa fa-rotate"></i> Change Password
+            </button>
+            <button class="pm-action-btn" id="pm-clear-master" style="flex:1;border-color:var(--error);color:var(--error);">
+              <i class="fa fa-unlock"></i> Remove
+            </button>
+          </div>
+        </div>
+      `;
+      $('pm-change-master')?.addEventListener('click', () => PM.openMasterModal('change'));
+      $('pm-clear-master')?.addEventListener('click',  () => PM.clearMasterPassword());
+    } else {
+      sec.innerHTML = `
+        <div class="pm-master-card">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <span style="font-size:20px;color:var(--warning);">🔓</span>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text-primary);">No Master Password</div>
+              <div style="font-size:11px;color:var(--text-muted);">Set one to protect access to saved passwords</div>
+            </div>
+          </div>
+          <button class="pm-action-btn" id="pm-set-master">
+            <i class="fa fa-lock"></i> Set Master Password
+          </button>
+        </div>
+      `;
+      $('pm-set-master')?.addEventListener('click', () => PM.openMasterModal('set'));
+    }
+  },
+
+  async renderSiteSettings() {
+    const listEl = $('pm-site-settings-list');
+    if (!listEl) return;
+    const all = await WMS.pm.list();
+    if (!all.length) {
+      listEl.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:8px 0;">No saved sites yet.</div>';
+      return;
+    }
+    listEl.innerHTML = all.map(s => `
+      <div class="pm-site-row">
+        <i class="fa fa-globe" style="color:var(--icon);font-size:12px;flex-shrink:0;"></i>
+        <div class="pm-site-domain">${escHtml(s.domain)}</div>
+        ${s.neverSave ? '<span class="pm-site-tag never">Never Save</span>' : ''}
+        ${s.autoFillDisabled ? '<span class="pm-site-tag nofill">No Fill</span>' : ''}
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          <button class="pm-act-btn" style="padding:3px 7px;flex:unset;" data-toggle-fill="${escHtml(s.domain)}" data-fill-disabled="${s.autoFillDisabled}" title="${s.autoFillDisabled ? 'Enable autofill' : 'Disable autofill'}">
+            <i class="fa fa-${s.autoFillDisabled ? 'eye' : 'eye-slash'}"></i>
+          </button>
+          <button class="pm-act-btn danger" style="padding:3px 7px;flex:unset;" data-del-domain-all="${escHtml(s.domain)}" title="Delete all for ${escHtml(s.domain)}">
+            <i class="fa fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+    listEl.querySelectorAll('[data-toggle-fill]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const newFlag = btn.dataset.fillDisabled !== 'true' ? true : false;
+        await WMS.pm.setAutoFillDisabled(btn.dataset.toggleFill, newFlag);
+        await PM.renderSiteSettings();
+        showToast(newFlag ? 'Autofill disabled for site' : 'Autofill enabled for site', 'info', 1800);
+      });
+    });
+
+    listEl.querySelectorAll('[data-del-domain-all]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm(`Delete ALL saved passwords for ${btn.dataset.delDomainAll}?`)) return;
+        await WMS.pm.deleteDomain(btn.dataset.delDomainAll);
+        await PM.renderSiteSettings();
+        await PM.renderAccountsTab();
+        showToast('All credentials deleted for site', 'info', 1800);
+      });
+    });
+  },
+
+  // ── BACKUP TAB ────────────────────────────────────────────────
+
+  bindBackupTab() {
+    const exportBtn = $('pm-export-btn');
+    const importBtn = $('pm-import-btn');
+    const deleteAllBtn = $('pm-delete-all-btn');
+
+    exportBtn?.addEventListener('click', async () => {
+      const pw  = $('pm-export-pw')?.value;
+      const pw2 = $('pm-export-pw2')?.value;
+      if (!pw) return showToast('Enter an export password', 'warning');
+      if (pw !== pw2) return showToast('Passwords do not match', 'error');
+      const r = await WMS.pm.export(pw);
+      if (r.ok) { showToast('Backup exported!', 'success'); $('pm-export-pw').value = ''; $('pm-export-pw2').value = ''; }
+      else if (r.error !== 'Cancelled') showToast('Export failed: ' + r.error, 'error');
+    });
+
+    importBtn?.addEventListener('click', async () => {
+      const pw = $('pm-import-pw')?.value;
+      if (!pw) return showToast('Enter the backup password', 'warning');
+      const r = await WMS.pm.import(pw);
+      if (r.ok) { showToast(`Imported ${r.count} site(s)!`, 'success'); $('pm-import-pw').value = ''; await PM.renderAccountsTab(); }
+      else if (r.error !== 'Cancelled') showToast('Import failed: ' + r.error, 'error');
+    });
+
+    deleteAllBtn?.addEventListener('click', async () => {
+      if (!confirm('Delete ALL saved passwords permanently? This cannot be undone.')) return;
+      const all = await WMS.pm.list();
+      for (const s of all) await WMS.pm.deleteDomain(s.domain);
+      await PM.renderAccountsTab();
+      await PM.renderSiteSettings();
+      showToast('All passwords deleted', 'info');
+    });
+  },
+
+  // ── LOCK BUTTON ───────────────────────────────────────────────
+
+  bindLockBtn() {
+    $('pm-btn-lock')?.addEventListener('click', () => {
+      PM.masterUnlocked = false;
+      PM.openMasterModal('verify');
+    });
+  },
+
+  // ── SAVE PW PROMPT ────────────────────────────────────────────
+
+  showSavePwPrompt(username, domain, isUpdate = false) {
+    const prompt = $('save-pw-prompt');
+    if (!prompt) return;
+    $('spw-user-label').textContent = `${username} · ${domain}`;
+    $('spw-save').style.display   = isUpdate ? 'none' : 'block';
+    $('spw-update').style.display = isUpdate ? 'block' : 'none';
+    prompt.style.display = 'flex';
+  },
+
+  hideSavePwPrompt() {
+    const p = $('save-pw-prompt');
+    if (p) p.style.display = 'none';
+    this.pendingCred = null;
+  },
+
+  setupSavePwPromptButtons() {
+    const doSave = async () => {
+      if (!this.pendingCred) return;
+      const { username, password, domain } = this.pendingCred;
+      await WMS.pm.save(domain, username, password, username);
+      this.hideSavePwPrompt();
+      await PM.renderAccountsTab();
+      showToast('Password saved!', 'success');
+    };
+    $('spw-save')?.addEventListener('click',   doSave);
+    $('spw-update')?.addEventListener('click', doSave);
+    $('spw-no')?.addEventListener('click',     () => this.hideSavePwPrompt());
+    $('spw-never')?.addEventListener('click',  async () => {
+      if (this.pendingCred) await WMS.pm.setNeverSave(this.pendingCred.domain, true);
+      this.hideSavePwPrompt();
+      showToast('Will never ask for this site', 'info', 2000);
+    });
+  },
+
+  // ── MASTER PASSWORD MODAL ─────────────────────────────────────
+
+  openMasterModal(mode = 'verify') {
+    // mode: 'verify' | 'set' | 'change'
+    const overlay  = $('master-pw-overlay');
+    const title    = $('mpw-title');
+    const subtitle = $('mpw-subtitle');
+    const confirmRow = $('mpw-confirm-row');
+    const hintRow    = $('mpw-hint-row');
+    const hint       = $('mpw-hint');
+    const confirmBtn = $('mpw-confirm-btn');
+    const errorEl    = $('mpw-error');
+
+    $('mpw-input').value = '';
+    $('mpw-confirm').value = '';
+    $('mpw-hint-input').value = '';
+    errorEl.style.display = 'none';
+
+    if (mode === 'set' || mode === 'change') {
+      title.textContent    = mode === 'set' ? 'Set Master Password' : 'Change Master Password';
+      subtitle.textContent = 'This password protects access to your saved credentials.';
+      confirmRow.style.display = 'block';
+      hintRow.style.display    = 'none';
+      confirmBtn.textContent   = mode === 'set' ? 'Set Password' : 'Change Password';
+    } else {
+      // verify
+      title.textContent    = 'Enter Master Password';
+      subtitle.textContent = 'Unlock the Password Manager.';
+      confirmRow.style.display = 'none';
+      WMS.pm.masterStatus().then(s => {
+        if (s.hint) { hint.textContent = s.hint; hintRow.style.display = 'block'; }
+        else hintRow.style.display = 'none';
+      });
+      confirmBtn.textContent = 'Unlock';
+    }
+
+    overlay.classList.add('visible');
+    setTimeout(() => $('mpw-input').focus(), 80);
+
+    // One-time confirm handler
+    const handler = async () => {
+      const pw = $('mpw-input').value;
+      if (!pw) { errorEl.textContent = 'Enter a password.'; errorEl.style.display = 'block'; return; }
+
+      if (mode === 'set' || mode === 'change') {
+        const pw2 = $('mpw-confirm').value;
+        const hint_v = $('mpw-hint-input').value;
+        if (pw !== pw2) { errorEl.textContent = 'Passwords do not match.'; errorEl.style.display = 'block'; return; }
+        if (pw.length < 6) { errorEl.textContent = 'Password must be at least 6 characters.'; errorEl.style.display = 'block'; return; }
+        await WMS.pm.setMaster(pw, hint_v);
+        overlay.classList.remove('visible');
+        confirmBtn.removeEventListener('click', handler);
+        await PM.renderMasterSection();
+        showToast('Master password set!', 'success');
+        PM.masterUnlocked = true;
+      } else {
+        const r = await WMS.pm.verifyMaster(pw);
+        if (r.ok) {
+          PM.masterUnlocked = true;
+          overlay.classList.remove('visible');
+          confirmBtn.removeEventListener('click', handler);
+          // Resolve any pending reveal
+          if (PM.pendingReveal) {
+            const { domain, accountId, resolve } = PM.pendingReveal;
+            PM.pendingReveal = null;
+            const rr = await WMS.pm.getPassword(domain, accountId);
+            resolve(rr.ok ? rr.password : null);
+          }
+        } else {
+          errorEl.textContent = 'Incorrect password. Try again.';
+          errorEl.style.display = 'block';
+          $('mpw-input').value = '';
+          $('mpw-input').focus();
+        }
+      }
+    };
+
+    // Re-bind confirm button
+    confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+    $('mpw-confirm-btn').addEventListener('click', handler);
+    $('mpw-input').addEventListener('keydown', e => { if (e.key === 'Enter') handler(); });
+
+    $('mpw-cancel-btn').onclick = () => {
+      overlay.classList.remove('visible');
+      if (PM.pendingReveal) { PM.pendingReveal.resolve(null); PM.pendingReveal = null; }
+    };
+  },
+
+  async clearMasterPassword() {
+    const r = await WMS.pm.verifyMaster('');
+    // If no master set, just clear
+    if (r.ok) { await WMS.pm.clearMaster(); await PM.renderMasterSection(); showToast('Master password removed', 'info'); return; }
+    // Else ask to verify first
+    PM.openMasterModal('verify');
+    // After verify, call clear
+    const originalResolve = PM.pendingReveal?.resolve;
+    PM.pendingReveal = { domain: '', accountId: '', resolve: async (pw) => {
+      if (pw !== null) { await WMS.pm.clearMaster(); await PM.renderMasterSection(); showToast('Master password removed', 'info'); }
+    }};
+  },
+
+  // ── REVEAL PASSWORD MODAL ─────────────────────────────────────
+
+  openRevealModal(domain, accountId, username) {
+    const overlay = $('reveal-pw-overlay');
+    $('rpw-label').textContent = `Account: ${username}`;
+    $('rpw-master-input').value = '';
+    $('rpw-error').style.display = 'none';
+    $('rpw-result').style.display = 'none';
+    $('rpw-value').value = '';
+    overlay.classList.add('visible');
+
+    const submit = async () => {
+      const masterR = await WMS.pm.masterStatus();
+      if (masterR.set && !PM.masterUnlocked) {
+        const pw = $('rpw-master-input').value;
+        if (!pw) { $('rpw-error').textContent = 'Enter master password.'; $('rpw-error').style.display = 'block'; return; }
+        const v = await WMS.pm.verifyMaster(pw);
+        if (!v.ok) { $('rpw-error').textContent = 'Wrong master password.'; $('rpw-error').style.display = 'block'; return; }
+        PM.masterUnlocked = true;
+      }
+      const r = await WMS.pm.getPassword(domain, accountId);
+      if (r.ok) {
+        $('rpw-value').value = r.password;
+        $('rpw-result').style.display = 'block';
+        $('rpw-master-input').parentElement.style.display = 'none';
+        $('rpw-submit-btn').style.display = 'none';
+        // Auto-hide password after 30s
+        setTimeout(() => { overlay.classList.remove('visible'); }, 30000);
+      }
+    };
+
+    $('rpw-submit-btn').replaceWith($('rpw-submit-btn').cloneNode(true));
+    $('rpw-submit-btn').addEventListener('click', submit);
+    $('rpw-master-input').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    $('rpw-copy').onclick = () => { navigator.clipboard?.writeText($('rpw-value').value); showToast('Password copied!', 'success', 1500); };
+    $('rpw-close-btn').onclick = () => {
+      overlay.classList.remove('visible');
+      $('rpw-value').value = '';
+      $('rpw-result').style.display = 'none';
+      $('rpw-master-input').parentElement.style.display = 'block';
+    };
+
+    // If no master pw or already unlocked, skip master input
+    WMS.pm.masterStatus().then(s => {
+      if (!s.set || PM.masterUnlocked) {
+        $('rpw-master-input').parentElement.style.display = 'none';
+      } else {
+        $('rpw-master-input').parentElement.style.display = 'block';
+        setTimeout(() => $('rpw-master-input').focus(), 80);
+      }
+    });
+  },
+
+  /** Get a password, prompting for master if needed */
+  async getPasswordWithMaster(domain, accountId) {
+    const masterStatus = await WMS.pm.masterStatus();
+    if (masterStatus.set && !this.masterUnlocked) {
+      return new Promise(resolve => {
+        PM.pendingReveal = { domain, accountId, resolve };
+        PM.openMasterModal('verify');
+      }).then(async (verified) => {
+        if (!verified) return null;
+        const r = await WMS.pm.getPassword(domain, accountId);
+        return r.ok ? r.password : null;
+      });
+    }
+    const r = await WMS.pm.getPassword(domain, accountId);
+    return r.ok ? r.password : null;
+  },
+};
+
+/* ── Wire PM panel open buttons ─────────────────────────────── */
+function setupPMListeners() {
+  // Open PM panel from toolbar button
+  $('btn-passwords')?.addEventListener('click', () => openPanel('passwords'));
+
+  // Autofill button in toolbar
+  $('btn-autofill')?.addEventListener('click', async () => {
+    await WMS.pm.autofillNow();
+    showToast('Auto-filling…', 'info', 1500);
+  });
+
+  // Overflow menu
+  $('om-passwords')?.addEventListener('click', () => {
+    document.getElementById('overflow-menu').classList.remove('open');
+    document.getElementById('btn-menu').classList.remove('active');
+    openPanel('passwords');
+  });
+
+  // PM prompt buttons
+  PM.setupSavePwPromptButtons();
+
+  // Toggle autofill setting from PM panel
+  $('pm-toggle-autofill')?.addEventListener('change', e => {
+    WMS.settings.save({ ...state.settings, autoFill: e.target.checked });
+    state.settings.autoFill = e.target.checked;
+  });
+}
+
+/* Re-open PM panel refreshes data */
+const _origOpenPanel = openPanel;
+function openPanel(name) {
+  _origOpenPanel(name);
+  if (name === 'passwords') {
+    PM.renderAccountsTab($('pm-search')?.value || '');
+    PM.renderSettingsTab();
+  }
+}
+
 document.addEventListener('DOMContentLoaded', init);
+
 </script>
 </body>
 </html>

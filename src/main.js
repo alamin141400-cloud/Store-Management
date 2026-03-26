@@ -1,31 +1,24 @@
-/**
- * Smart Store WMS Desktop App v3.0
- * Main Process — Electron Entry Point
- *
- * Responsibilities:
- *  - Window & BrowserView (tab) lifecycle
- *  - Security enforcement (domain whitelist, request blocking)
- *  - Download management
- *  - Password manager (AES-256 encrypted credentials)
- *  - IPC bridge handlers
- *  - Bookmarks / History / Settings persistence
- */
-
 'use strict';
 
+/**
+ * Smart Store WMS Desktop App v3.0
+ * Main Process — Complete Password Manager Edition
+ *
+ * Password Manager:
+ *  ✅ AES-256-CBC encryption (device-bound key)
+ *  ✅ Multiple accounts per domain
+ *  ✅ Master password (PBKDF2 + HMAC verify)
+ *  ✅ Auto-detect login form submission (MutationObserver for React/Vue/SPA)
+ *  ✅ Smart autofill with multi-account chooser UI
+ *  ✅ Per-site never-save & autofill-disable
+ *  ✅ Usage tracking (lastUsed, timesUsed)
+ *  ✅ Export / Import (password-encrypted JSON)
+ *  ✅ Reveal password (master password gated)
+ */
+
 const {
-  app,
-  BrowserWindow,
-  BrowserView,
-  ipcMain,
-  session,
-  dialog,
-  shell,
-  globalShortcut,
-  Menu,
-  nativeTheme,
-  net,
-  protocol
+  app, BrowserWindow, BrowserView, ipcMain,
+  session, dialog, shell, Menu
 } = require('electron');
 
 const path   = require('path');
@@ -33,966 +26,871 @@ const fs     = require('fs');
 const crypto = require('crypto');
 const os     = require('os');
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CONFIGURATION
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────────────────────
 
-/** The single allowed WMS origin. */
-const WMS_URL    = 'https://arman.ahrtechdiv.com';
-const WMS_HOST   = 'arman.ahrtechdiv.com';
+const WMS_URL  = 'https://arman.ahrtechdiv.com';
+const WMS_HOST = 'arman.ahrtechdiv.com';
+const MAX_TABS = 10;
+const CHROME_H = 110;
 
-/**
- * CDN domains that the WMS site is allowed to load resources from.
- * Modify this array to expand/restrict CDN access.
- */
 const CDN_WHITELIST = [
   'arman.ahrtechdiv.com',
-  'cdn.jsdelivr.net',
-  'cdnjs.cloudflare.com',
-  'unpkg.com',
-  'fonts.googleapis.com',
-  'fonts.gstatic.com',
-  'use.fontawesome.com',
-  'bootstrapcdn.com',
-  'maxcdn.bootstrapcdn.com',
-  'js.stripe.com',
-  'checkout.stripe.com',
-  'cdn.socket.io',
-  'maps.googleapis.com',
-  'maps.gstatic.com',
-  'www.google.com',       // reCAPTCHA
-  'www.gstatic.com',      // reCAPTCHA assets
+  'cdn.jsdelivr.net', 'cdnjs.cloudflare.com', 'unpkg.com',
+  'fonts.googleapis.com', 'fonts.gstatic.com',
+  'use.fontawesome.com', 'bootstrapcdn.com',
+  'maxcdn.bootstrapcdn.com', 'stackpath.bootstrapcdn.com',
+  'js.stripe.com', 'checkout.stripe.com',
+  'cdn.socket.io', 'maps.googleapis.com', 'maps.gstatic.com',
+  'www.google.com', 'www.gstatic.com', 'ajax.googleapis.com',
 ];
 
-/** Maximum tabs allowed. */
-const MAX_TABS = 10;
-
-/** App data paths */
-const USER_DATA      = app.getPath('userData');
-const STORE_DIR      = path.join(USER_DATA, 'smart-store');
+const STORE_DIR      = path.join(app.getPath('userData'), 'smart-store');
 const CREDS_FILE     = path.join(STORE_DIR, 'credentials.json');
 const BOOKMARKS_FILE = path.join(STORE_DIR, 'bookmarks.json');
 const HISTORY_FILE   = path.join(STORE_DIR, 'history.json');
 const SETTINGS_FILE  = path.join(STORE_DIR, 'settings.json');
+const PM_META_FILE   = path.join(STORE_DIR, 'pm-meta.json');
 const KEY_FILE       = path.join(STORE_DIR, '.enckey');
 
-/** Top chrome bar height in pixels. */
-const CHROME_HEIGHT = 110;
+// ─────────────────────────────────────────────────────────────
+// FILE HELPERS
+// ─────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────────────────────
-// UTILITIES
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Ensure the data directory exists. */
-function ensureStoreDir() {
+function ensureDir() {
   if (!fs.existsSync(STORE_DIR)) fs.mkdirSync(STORE_DIR, { recursive: true });
 }
 
-/** Read JSON file safely; return defaultValue on any error. */
-function readJSON(file, defaultValue = {}) {
-  try {
-    return JSON.parse(fs.readFileSync(file, 'utf8'));
-  } catch {
-    return defaultValue;
-  }
+function readJSON(file, def = {}) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return def; }
 }
 
-/** Write JSON file atomically (write to tmp then rename). */
 function writeJSON(file, data) {
+  ensureDir();
   const tmp = file + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf8');
   fs.renameSync(tmp, file);
 }
 
-/** Check if a URL hostname is in the whitelist. */
-function isAllowedURL(urlStr) {
+function isAllowed(urlStr) {
   try {
     const { hostname } = new URL(urlStr);
-    return CDN_WHITELIST.some(allowed =>
-      hostname === allowed || hostname.endsWith('.' + allowed)
-    );
-  } catch {
-    return false;
-  }
+    return CDN_WHITELIST.some(d => hostname === d || hostname.endsWith('.' + d));
+  } catch { return false; }
 }
 
-/** Generate or load the AES-256 encryption key. */
-function getEncryptionKey() {
-  ensureStoreDir();
+// ─────────────────────────────────────────────────────────────
+// ENCRYPTION — AES-256-CBC
+// ─────────────────────────────────────────────────────────────
+
+function getDeviceKey() {
+  ensureDir();
   if (fs.existsSync(KEY_FILE)) {
-    return fs.readFileSync(KEY_FILE);
+    const raw = fs.readFileSync(KEY_FILE);
+    if (raw.length === 32) return raw;
   }
-  // Derive from machine ID + app version for deterministic fallback
-  const machineId = os.hostname() + os.platform() + os.arch();
-  const key = crypto.createHash('sha256').update(machineId + 'WMS-v3').digest();
-  fs.writeFileSync(KEY_FILE, key);
+  const key = crypto.randomBytes(32);
+  fs.writeFileSync(KEY_FILE, key, { mode: 0o600 });
   return key;
 }
 
-/** Encrypt a plaintext string → base64 ciphertext. */
-function encrypt(text) {
-  const key = getEncryptionKey();
+function encryptAES(plaintext) {
+  const key = getDeviceKey();
   const iv  = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-  const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
-  return iv.toString('hex') + ':' + encrypted.toString('base64');
+  const c   = crypto.createCipheriv('aes-256-cbc', key, iv);
+  const enc = Buffer.concat([c.update(plaintext, 'utf8'), c.final()]);
+  return iv.toString('hex') + ':' + enc.toString('base64');
 }
 
-/** Decrypt a base64 ciphertext → plaintext. */
-function decrypt(ciphertext) {
+function decryptAES(ciphertext) {
   try {
-    const [ivHex, data] = ciphertext.split(':');
-    const key = getEncryptionKey();
+    const [ivHex, b64] = ciphertext.split(':');
+    const key = getDeviceKey();
     const iv  = Buffer.from(ivHex, 'hex');
-    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-    const decrypted = Buffer.concat([
-      decipher.update(Buffer.from(data, 'base64')),
-      decipher.final()
-    ]);
-    return decrypted.toString('utf8');
-  } catch {
-    return null;
+    const d   = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    return Buffer.concat([d.update(Buffer.from(b64, 'base64')), d.final()]).toString('utf8');
+  } catch { return null; }
+}
+
+function encryptWithPwKey(plaintext, key) {
+  const iv  = crypto.randomBytes(16);
+  const c   = crypto.createCipheriv('aes-256-cbc', key, iv);
+  const enc = Buffer.concat([c.update(plaintext, 'utf8'), c.final()]);
+  return iv.toString('hex') + ':' + enc.toString('base64');
+}
+
+function decryptWithPwKey(ciphertext, key) {
+  try {
+    const [ivHex, b64] = ciphertext.split(':');
+    const iv = Buffer.from(ivHex, 'hex');
+    const d  = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    return Buffer.concat([d.update(Buffer.from(b64, 'base64')), d.final()]).toString('utf8');
+  } catch { return null; }
+}
+
+// ─────────────────────────────────────────────────────────────
+// MASTER PASSWORD
+// ─────────────────────────────────────────────────────────────
+
+function deriveKey(password, salt) {
+  return crypto.pbkdf2Sync(password, salt, 200000, 32, 'sha256');
+}
+
+function getMasterMeta() {
+  return readJSON(PM_META_FILE, { set: false, hash: null, salt: null, hint: '' });
+}
+
+function isMasterSet() { return getMasterMeta().set === true; }
+
+function setMasterPassword(password, hint = '') {
+  const salt = crypto.randomBytes(32).toString('hex');
+  const key  = deriveKey(password, salt);
+  const hash = crypto.createHmac('sha256', key).update('wms-pm-v3').digest('hex');
+  writeJSON(PM_META_FILE, { set: true, hash, salt, hint });
+}
+
+function verifyMaster(password) {
+  const meta = getMasterMeta();
+  if (!meta.set) return true;
+  const key  = deriveKey(password, meta.salt);
+  const hash = crypto.createHmac('sha256', key).update('wms-pm-v3').digest('hex');
+  try { return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(meta.hash)); } catch { return false; }
+}
+
+function clearMaster() {
+  writeJSON(PM_META_FILE, { set: false, hash: null, salt: null, hint: '' });
+}
+
+// ─────────────────────────────────────────────────────────────
+// CREDENTIAL STORE
+// ─────────────────────────────────────────────────────────────
+
+/*
+  Storage schema:
+  {
+    "domain.com": {
+      accounts: [
+        { id, username, password(enc), label, savedAt, lastUsed, timesUsed }
+      ],
+      neverSave: false,
+      autoFillDisabled: false
+    }
+  }
+*/
+
+function getAllCreds()        { return readJSON(CREDS_FILE, {}); }
+function saveAllCreds(store) { writeJSON(CREDS_FILE, store); }
+
+function saveCredential(domain, username, password, label = '') {
+  const store = getAllCreds();
+  if (!store[domain]) store[domain] = { accounts: [], neverSave: false, autoFillDisabled: false };
+  const now  = Date.now();
+  const enc  = encryptAES(password);
+  const idx  = store[domain].accounts.findIndex(a => a.username === username);
+  if (idx >= 0) {
+    store[domain].accounts[idx].password = enc;
+    store[domain].accounts[idx].savedAt  = now;
+    if (label) store[domain].accounts[idx].label = label;
+  } else {
+    store[domain].accounts.push({
+      id: crypto.randomBytes(8).toString('hex'),
+      username, password: enc,
+      label: label || username,
+      savedAt: now, lastUsed: null, timesUsed: 0
+    });
+  }
+  saveAllCreds(store);
+}
+
+function markCredUsed(domain, username) {
+  const store = getAllCreds();
+  const site  = store[domain];
+  if (!site) return;
+  const acc = site.accounts.find(a => a.username === username);
+  if (!acc) return;
+  acc.lastUsed  = Date.now();
+  acc.timesUsed = (acc.timesUsed || 0) + 1;
+  saveAllCreds(store);
+}
+
+function deleteAccount(domain, accountId) {
+  const store = getAllCreds();
+  const site  = store[domain];
+  if (!site) return;
+  site.accounts = site.accounts.filter(a => a.id !== accountId);
+  if (!site.accounts.length && !site.neverSave) delete store[domain];
+  saveAllCreds(store);
+}
+
+function deleteDomain(domain) {
+  const store = getAllCreds();
+  delete store[domain];
+  saveAllCreds(store);
+}
+
+function setNeverSave(domain, flag) {
+  const store = getAllCreds();
+  if (!store[domain]) store[domain] = { accounts: [], neverSave: false, autoFillDisabled: false };
+  store[domain].neverSave = flag;
+  saveAllCreds(store);
+}
+
+function setAutoFillDisabled(domain, flag) {
+  const store = getAllCreds();
+  if (!store[domain]) store[domain] = { accounts: [], neverSave: false, autoFillDisabled: false };
+  store[domain].autoFillDisabled = flag;
+  saveAllCreds(store);
+}
+
+function listAllCreds() {
+  const store = getAllCreds();
+  return Object.entries(store).map(([domain, data]) => ({
+    domain,
+    neverSave:        data.neverSave || false,
+    autoFillDisabled: data.autoFillDisabled || false,
+    accounts: (data.accounts || []).map(a => ({
+      id: a.id, username: a.username, label: a.label,
+      savedAt: a.savedAt, lastUsed: a.lastUsed, timesUsed: a.timesUsed || 0
+    }))
+  }));
+}
+
+function exportCreds(exportPassword) {
+  const raw  = JSON.stringify(getAllCreds());
+  const salt = crypto.randomBytes(16).toString('hex');
+  const key  = deriveKey(exportPassword, salt);
+  const enc  = encryptWithPwKey(raw, key);
+  return JSON.stringify({ v: 3, salt, data: enc }, null, 2);
+}
+
+function importCreds(jsonStr, importPassword) {
+  try {
+    const { v, salt, data } = JSON.parse(jsonStr);
+    if (v !== 3) throw new Error('Incompatible format');
+    const key = deriveKey(importPassword, salt);
+    const dec = decryptWithPwKey(data, key);
+    if (!dec) throw new Error('Wrong password or corrupt file');
+    const parsed = JSON.parse(dec);
+    saveAllCreds(parsed);
+    return { ok: true, count: Object.keys(parsed).length };
+  } catch (e) {
+    return { ok: false, error: e.message };
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STATE
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// AUTOFILL INJECTION SCRIPTS
+// ─────────────────────────────────────────────────────────────
 
-let mainWindow = null;
+/** Build the autofill script with all decrypted accounts embedded. */
+function buildAutofillScript(accounts) {
+  const safe = JSON.stringify(
+    accounts.map(a => ({ id: a.id, username: a.username, password: a.password, label: a.label || a.username }))
+  );
+  return `
+(function(){
+'use strict';
+var ACCOUNTS=${safe};
+if(!ACCOUNTS.length)return;
 
-/**
- * Tab state map: tabId → { view, url, title, favicon, zoom, canGoBack, canGoForward }
- */
-const tabs       = new Map();
-let   activeTabId = null;
-let   nextTabId   = 1;
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-/** In-memory download list. */
-const downloads  = [];
+function getFields(){
+  var pw=document.querySelector('input[type="password"]');
+  if(!pw)return null;
+  var f=pw.closest('form')||document;
+  var u=f.querySelector('input[type="email"]')||
+        f.querySelector('input[autocomplete="username"]')||
+        f.querySelector('input[autocomplete="email"]')||
+        f.querySelector('input[name*="email"]')||
+        f.querySelector('input[name*="user"]')||
+        f.querySelector('input[id*="email"]')||
+        f.querySelector('input[id*="user"]')||
+        f.querySelector('input[type="text"]');
+  return{user:u,pw:pw};
+}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// WINDOW CREATION
-// ─────────────────────────────────────────────────────────────────────────────
+function dispatch(el){
+  ['input','change','keyup','blur'].forEach(function(n){
+    el.dispatchEvent(new Event(n,{bubbles:true}));
+  });
+}
+
+function fillWith(acc){
+  var f=getFields();if(!f)return;
+  if(f.user){f.user.value=acc.username;dispatch(f.user);}
+  f.pw.value=acc.password;dispatch(f.pw);
+  showBadge('\\u2714 Filled: '+esc(acc.label),'#059669');
+  removeChooser();
+  // Notify main about usage
+  document.dispatchEvent(new CustomEvent('__wms_filled__',{detail:{username:acc.username}}));
+}
+
+function showBadge(msg,color){
+  var old=document.getElementById('__wms_badge__');if(old)old.remove();
+  var b=document.createElement('div');b.id='__wms_badge__';
+  b.style.cssText='position:fixed;bottom:18px;right:18px;z-index:2147483647;background:'+color+';color:#fff;'+
+    'padding:9px 18px;border-radius:8px;font-size:13px;font-family:system-ui,sans-serif;'+
+    'box-shadow:0 4px 20px rgba(0,0,0,.4);transition:opacity .5s;pointer-events:none;';
+  b.textContent=msg;
+  document.body.appendChild(b);
+  setTimeout(function(){b.style.opacity='0';setTimeout(function(){b.remove();},500);},2800);
+}
+
+function removeChooser(){var c=document.getElementById('__wms_chooser__');if(c)c.remove();}
+
+function buildChooser(){
+  removeChooser();
+  var f=getFields();if(!f)return;
+  var rect=f.pw.getBoundingClientRect();
+  var w=document.createElement('div');w.id='__wms_chooser__';
+  w.style.cssText='position:fixed;z-index:2147483647;'+
+    'top:'+(rect.bottom+window.scrollY+6)+'px;left:'+(rect.left+window.scrollX)+'px;'+
+    'background:#0d1428;border:1px solid #2563eb;border-radius:10px;'+
+    'box-shadow:0 8px 40px rgba(0,0,0,.65);font-family:system-ui,sans-serif;'+
+    'min-width:260px;max-width:320px;overflow:hidden;';
+
+  var hdr=document.createElement('div');
+  hdr.style.cssText='padding:9px 14px;font-size:11px;font-weight:700;text-transform:uppercase;'+
+    'letter-spacing:.07em;color:#5f7fba;border-bottom:1px solid #1e3060;'+
+    'display:flex;align-items:center;justify-content:space-between;';
+  hdr.innerHTML='<span>\\uD83D\\uDD11 Choose Account</span>';
+  var x=document.createElement('span');x.textContent='\\u2715';
+  x.style.cssText='cursor:pointer;color:#5f7fba;font-size:15px;line-height:1;padding:0 2px;';
+  x.onclick=removeChooser;hdr.appendChild(x);w.appendChild(hdr);
+
+  ACCOUNTS.forEach(function(acc){
+    var row=document.createElement('div');
+    row.style.cssText='padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;'+
+      'border-bottom:1px solid #1e3060;transition:background .12s;';
+    row.onmouseenter=function(){row.style.background='#162040';};
+    row.onmouseleave=function(){row.style.background='transparent';};
+    var av=document.createElement('div');
+    av.style.cssText='width:30px;height:30px;border-radius:50%;'+
+      'background:linear-gradient(135deg,#2563eb,#1d4ed8);'+
+      'display:flex;align-items:center;justify-content:center;'+
+      'font-size:13px;font-weight:700;color:#fff;flex-shrink:0;';
+    av.textContent=(acc.label||acc.username).charAt(0).toUpperCase();
+    var info=document.createElement('div');info.style.cssText='flex:1;overflow:hidden;';
+    info.innerHTML='<div style="font-size:13px;color:#e8edf8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(acc.label||acc.username)+'</div>'+
+      '<div style="font-size:11px;color:#5f7fba;margin-top:1px;">'+esc(acc.username)+'</div>';
+    row.appendChild(av);row.appendChild(info);
+    row.onclick=function(){fillWith(acc);};
+    w.appendChild(row);
+  });
+  document.body.appendChild(w);
+  setTimeout(function(){
+    document.addEventListener('click',function h(e){if(!w.contains(e.target)){removeChooser();document.removeEventListener('click',h);}});
+  },10);
+}
+
+function tryFill(){
+  if(!getFields())return false;
+  if(ACCOUNTS.length===1)fillWith(ACCOUNTS[0]);
+  else buildChooser();
+  return true;
+}
+
+if(!tryFill()){
+  var obs=new MutationObserver(function(){if(tryFill())obs.disconnect();});
+  obs.observe(document.documentElement,{childList:true,subtree:true});
+  setTimeout(function(){obs.disconnect();},12000);
+}
+})();
+`.trim();
+}
+
+/** Build the credential-capture detection script. */
+function buildDetectScript() {
+  return `
+(function(){
+'use strict';
+if(window.__wmsDetect__)return;
+window.__wmsDetect__=true;
+
+function getUser(form){
+  return form.querySelector('input[type="email"]')||
+    form.querySelector('input[autocomplete="username"]')||
+    form.querySelector('input[autocomplete="email"]')||
+    form.querySelector('input[name*="email"]')||
+    form.querySelector('input[name*="user"]')||
+    form.querySelector('input[type="text"]');
+}
+
+function listen(form){
+  if(form.__wmsListen__)return;form.__wmsListen__=true;
+  function capture(){
+    var pw=form.querySelector('input[type="password"]');
+    if(!pw||!pw.value)return;
+    var u=getUser(form);
+    if(u&&u.value&&pw.value){
+      document.dispatchEvent(new CustomEvent('__wms_submit__',{detail:{username:u.value,password:pw.value}}));
+    }
+  }
+  form.addEventListener('submit',capture);
+  // Also watch for button clicks that submit
+  form.querySelectorAll('button[type="submit"],input[type="submit"]').forEach(function(btn){
+    btn.addEventListener('click',function(){setTimeout(capture,100);});
+  });
+}
+
+document.querySelectorAll('form').forEach(listen);
+new MutationObserver(function(ms){
+  ms.forEach(function(m){m.addedNodes.forEach(function(n){
+    if(n.nodeType!==1)return;
+    if(n.tagName==='FORM')listen(n);
+    n.querySelectorAll&&n.querySelectorAll('form').forEach(listen);
+  });});
+}).observe(document.documentElement,{childList:true,subtree:true});
+})();
+`.trim();
+}
+
+// ─────────────────────────────────────────────────────────────
+// AUTOFILL TRIGGER
+// ─────────────────────────────────────────────────────────────
+
+function autoFillCredentials(tabId) {
+  const s = getSettings();
+  if (!s.autoFill) return;
+  const tab = tabs.get(tabId);
+  if (!tab) return;
+  const store = getAllCreds();
+  const site  = store[WMS_HOST];
+  if (!site || !site.accounts.length || site.autoFillDisabled) return;
+
+  const accounts = site.accounts
+    .map(a => ({ id: a.id, username: a.username, password: decryptAES(a.password), label: a.label || a.username }))
+    .filter(a => a.password);
+
+  if (!accounts.length) return;
+  tab.view.webContents.executeJavaScript(buildAutofillScript(accounts)).catch(() => {});
+
+  // Listen for fill event to mark usage
+  tab.view.webContents.executeJavaScript(`
+    (function(){
+      if(window.__wmsFilledListen__)return;window.__wmsFilledListen__=true;
+      document.addEventListener('__wms_filled__',function(e){window.__wmsLastFilled__=e.detail.username;});
+    })();
+  `).catch(() => {});
+}
+
+function detectLoginForm(tabId) {
+  const tab = tabs.get(tabId); if (!tab) return;
+  tab.view.webContents.executeJavaScript(buildDetectScript()).catch(() => {});
+
+  // Setup listener for the custom event
+  setTimeout(() => {
+    tab.view.webContents.executeJavaScript(`
+      (function(){
+        if(window.__wmsSubmitListen__)return;window.__wmsSubmitListen__=true;
+        document.addEventListener('__wms_submit__',function(e){window.__wmsPendingCred__=e.detail;});
+      })();
+    `).catch(() => {});
+  }, 600);
+}
+
+function pollForCredential(tabId) {
+  const tab = tabs.get(tabId); if (!tab) return;
+  tab.view.webContents.executeJavaScript(`
+    (function(){var c=window.__wmsPendingCred__;window.__wmsPendingCred__=null;return c||null;})();
+  `).then(cred => {
+    if (!cred || !cred.username || !cred.password) return;
+    const store = getAllCreds();
+    const site  = store[WMS_HOST];
+    if (site && site.neverSave) return;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('wms:credentials-prompt', { username: cred.username, password: cred.password, domain: WMS_HOST });
+    }
+  }).catch(() => {});
+}
+
+// ─────────────────────────────────────────────────────────────
+// APP STATE
+// ─────────────────────────────────────────────────────────────
+
+let mainWindow  = null;
+const tabs      = new Map();
+let activeTabId = null;
+let nextTabId   = 1;
+const downloads = [];
+
+function send(channel, ...args) {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, ...args);
+}
+
+// ─────────────────────────────────────────────────────────────
+// WINDOW
+// ─────────────────────────────────────────────────────────────
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1440,
-    height: 900,
-    minWidth: 900,
-    minHeight: 600,
-    frame: true,
-    titleBarStyle: 'default',
-    title: 'Smart Store WMS',
-    icon: path.join(__dirname, 'assets', 'icon.ico'),
-    backgroundColor: '#0a0f1e',
-    show: false,
+    width: 1440, height: 900, minWidth: 900, minHeight: 600,
+    frame: true, title: 'Smart Store WMS',
+    icon: path.join(__dirname, '..', 'assets', 'icon.ico'),
+    backgroundColor: '#0a0f1e', show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,      // ✅ Security: isolate renderer context
-      nodeIntegration: false,      // ✅ Security: no Node in renderer
-      sandbox: true,               // ✅ Security: sandboxed renderer
-      webSecurity: true,
-      allowRunningInsecureContent: false,
+      contextIsolation: true, nodeIntegration: false,
+      sandbox: true, webSecurity: true,
     }
   });
-
-  mainWindow.loadFile(path.join(__dirname, 'index.html'));
-
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-    mainWindow.maximize();
-    // Open first tab automatically
-    createTab(WMS_URL);
-  });
-
-  // Prevent the main window's webContents from navigating anywhere
-  mainWindow.webContents.on('will-navigate', (e) => e.preventDefault());
-
-  mainWindow.on('resize', () => resizeActiveTab());
-  mainWindow.on('closed', () => { mainWindow = null; });
-
-  // Remove default menu bar
   Menu.setApplicationMenu(null);
-
-  setupGlobalShortcuts();
+  mainWindow.loadFile(path.join(__dirname, 'index.html'));
+  mainWindow.once('ready-to-show', () => { mainWindow.show(); mainWindow.maximize(); createTab(WMS_URL); });
+  mainWindow.webContents.on('will-navigate', e => e.preventDefault());
+  mainWindow.on('resize', () => resizeActive());
+  mainWindow.on('closed', () => { mainWindow = null; });
+  setupShortcuts();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TAB MANAGEMENT
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────────────────────────
 
-/** Get pixel bounds for the BrowserView (below chrome). */
-function getViewBounds() {
+function getBounds() {
   const [w, h] = mainWindow.getContentSize();
-  return { x: 0, y: CHROME_HEIGHT, width: w, height: h - CHROME_HEIGHT };
+  return { x: 0, y: CHROME_H, width: w, height: h - CHROME_H };
 }
 
-/**
- * Create a new tab and attach a BrowserView.
- * @param {string} url - URL to load
- * @returns {number} tabId
- */
 function createTab(url = WMS_URL) {
-  if (tabs.size >= MAX_TABS) {
-    mainWindow.webContents.send('wms:error', 'Maximum 10 tabs allowed.');
-    return null;
-  }
-
+  if (tabs.size >= MAX_TABS) { send('wms:error', 'Maximum 10 tabs allowed.'); return null; }
   const tabId = nextTabId++;
-  const ses   = session.fromPartition(`persist:tab-${tabId}`); // Independent session per tab
-
-  // Apply security rules to this tab's session
+  const ses   = session.fromPartition(`persist:tab-${tabId}`);
   applySessionSecurity(ses);
-
   const view = new BrowserView({
-    webPreferences: {
-      session: ses,
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-      webSecurity: true,
-      allowRunningInsecureContent: false,
-      preload: path.join(__dirname, 'preload.js'),
-    }
+    webPreferences: { session: ses, contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true }
   });
-
-  tabs.set(tabId, {
-    view,
-    url,
-    title: 'Loading…',
-    favicon: null,
-    zoom: 1.0,
-    canGoBack: false,
-    canGoForward: false,
-  });
-
+  tabs.set(tabId, { view, url, title: 'Loading…', favicon: null, zoom: 1.0, canGoBack: false, canGoForward: false });
   setupViewEvents(tabId, view);
-
-  // Switch to new tab
   switchTab(tabId);
-
-  // Load the URL
-  view.webContents.loadURL(url).catch(err => {
-    console.error(`Tab ${tabId} load error:`, err);
-  });
-
-  // Notify renderer a tab was created
-  mainWindow.webContents.send('wms:tab-created', { tabId, url });
-
+  view.webContents.loadURL(url).catch(() => {});
+  send('wms:tab-created', { tabId, url });
   return tabId;
 }
 
-/** Attach event handlers to a BrowserView's webContents. */
 function setupViewEvents(tabId, view) {
   const wc = view.webContents;
-
-  // Security: block external navigation
-  wc.on('will-navigate', (event, navUrl) => {
-    if (!isAllowedURL(navUrl)) {
-      event.preventDefault();
-      mainWindow.webContents.send('wms:blocked', { url: navUrl });
-    }
-  });
-
-  // Security: block new windows / popups
-  wc.setWindowOpenHandler(({ url }) => {
-    if (isAllowedURL(url)) {
-      createTab(url); // open in new tab instead
-    } else {
-      mainWindow.webContents.send('wms:blocked', { url });
-    }
-    return { action: 'deny' };
-  });
-
-  // Update tab state on navigation
-  wc.on('did-navigate', (_, url) => {
-    updateTabState(tabId, { url });
-    addToHistory(url, tabs.get(tabId)?.title || url);
-  });
-
-  wc.on('did-navigate-in-page', (_, url) => {
-    updateTabState(tabId, { url });
-  });
-
-  // Title changes
-  wc.on('page-title-updated', (_, title) => {
-    updateTabState(tabId, { title });
-  });
-
-  // Favicon
-  wc.on('page-favicon-updated', (_, favicons) => {
-    if (favicons && favicons.length) updateTabState(tabId, { favicon: favicons[0] });
-  });
-
-  // Loading indicators
-  wc.on('did-start-loading', () => {
-    mainWindow.webContents.send('wms:tab-loading', { tabId, loading: true });
-  });
-
-  wc.on('did-stop-loading', () => {
-    mainWindow.webContents.send('wms:tab-loading', { tabId, loading: false });
-    updateNavState(tabId);
-  });
-
-  // Downloads
+  wc.on('will-navigate', (e, u) => { if (!isAllowed(u)) { e.preventDefault(); send('wms:blocked', { url: u }); } });
+  wc.setWindowOpenHandler(({ url }) => { if (isAllowed(url)) createTab(url); else send('wms:blocked', { url }); return { action: 'deny' }; });
+  wc.on('did-navigate', (_, u) => { updateTab(tabId, { url: u }); addHistory(u, tabs.get(tabId)?.title || u); setTimeout(() => pollForCredential(tabId), 1800); });
+  wc.on('did-navigate-in-page', (_, u) => updateTab(tabId, { url: u }));
+  wc.on('page-title-updated', (_, t) => updateTab(tabId, { title: t }));
+  wc.on('page-favicon-updated', (_, f) => { if (f?.length) updateTab(tabId, { favicon: f[0] }); });
+  wc.on('did-start-loading', () => send('wms:tab-loading', { tabId, loading: true }));
+  wc.on('did-stop-loading', () => { send('wms:tab-loading', { tabId, loading: false }); updateNavState(tabId); detectLoginForm(tabId); });
+  wc.on('did-finish-load', () => { autoFillCredentials(tabId); detectLoginForm(tabId); });
   wc.session.on('will-download', handleDownload);
-
-  // Certificate errors — accept for allowed domains only
-  wc.on('certificate-error', (event, url, error, cert, callback) => {
-    if (isAllowedURL(url)) {
-      // Accept cert for whitelisted domain (enterprise self-signed possible)
-      event.preventDefault();
-      callback(true);
-    } else {
-      callback(false);
-    }
-  });
-
-  // Auto-fill credentials detection after page load
-  wc.on('did-finish-load', () => {
-    autoFillCredentials(tabId);
-    detectLoginForm(tabId);
-  });
+  wc.on('found-in-page', (_, r) => send('wms:find-result', { activeMatchOrdinal: r.activeMatchOrdinal, matches: r.matches }));
 }
 
-/** Update tab metadata and notify renderer. */
-function updateTabState(tabId, patch) {
-  const tab = tabs.get(tabId);
-  if (!tab) return;
-  Object.assign(tab, patch);
-  mainWindow.webContents.send('wms:tab-updated', { tabId, ...tab, view: undefined });
+function updateTab(tabId, patch) {
+  const t = tabs.get(tabId); if (!t) return;
+  Object.assign(t, patch);
+  send('wms:tab-updated', { tabId, ...t, view: undefined });
 }
 
-/** Refresh back/forward state. */
 function updateNavState(tabId) {
-  const tab = tabs.get(tabId);
-  if (!tab) return;
-  const wc = tab.view.webContents;
-  const canGoBack    = wc.canGoBack();
-  const canGoForward = wc.canGoForward();
-  updateTabState(tabId, { canGoBack, canGoForward });
-  if (tabId === activeTabId) {
-    mainWindow.webContents.send('wms:nav-state', { canGoBack, canGoForward, url: tab.url });
-  }
+  const t = tabs.get(tabId); if (!t) return;
+  const back = t.view.webContents.canGoBack(), fwd = t.view.webContents.canGoForward();
+  updateTab(tabId, { canGoBack: back, canGoForward: fwd });
+  if (tabId === activeTabId) send('wms:nav-state', { canGoBack: back, canGoForward: fwd, url: t.url });
 }
 
-/** Switch the visible BrowserView to tabId. */
 function switchTab(tabId) {
   if (!tabs.has(tabId)) return;
-
-  // Detach current
-  if (activeTabId && tabs.has(activeTabId)) {
-    mainWindow.removeBrowserView(tabs.get(activeTabId).view);
-  }
-
+  if (activeTabId && tabs.has(activeTabId)) mainWindow.removeBrowserView(tabs.get(activeTabId).view);
   activeTabId = tabId;
-  const tab   = tabs.get(tabId);
-
-  mainWindow.addBrowserView(tab.view);
-  resizeActiveTab();
+  const t = tabs.get(tabId);
+  mainWindow.addBrowserView(t.view);
+  resizeActive();
   updateNavState(tabId);
-
-  mainWindow.webContents.send('wms:tab-switched', { tabId });
+  send('wms:tab-switched', { tabId });
 }
 
-/** Resize the active BrowserView to fill available area. */
-function resizeActiveTab() {
-  if (!activeTabId || !tabs.has(activeTabId)) return;
-  tabs.get(activeTabId).view.setBounds(getViewBounds());
+function resizeActive() {
+  if (activeTabId && tabs.has(activeTabId)) tabs.get(activeTabId).view.setBounds(getBounds());
 }
 
-/** Close a tab by ID. */
 function closeTab(tabId) {
   if (!tabs.has(tabId)) return;
-  const tab = tabs.get(tabId);
-
-  mainWindow.removeBrowserView(tab.view);
-  tab.view.webContents.destroy();
+  const t = tabs.get(tabId);
+  mainWindow.removeBrowserView(t.view);
+  t.view.webContents.destroy();
   tabs.delete(tabId);
-
-  mainWindow.webContents.send('wms:tab-closed', { tabId });
-
-  if (tabs.size === 0) {
-    // No tabs left → open a fresh one
-    createTab(WMS_URL);
-  } else if (tabId === activeTabId) {
-    // Activate the last remaining tab
-    const lastId = [...tabs.keys()].pop();
-    switchTab(lastId);
-  }
+  send('wms:tab-closed', { tabId });
+  if (tabs.size === 0) createTab(WMS_URL);
+  else if (tabId === activeTabId) switchTab([...tabs.keys()].pop());
 }
 
-/** Duplicate a tab. */
 function duplicateTab(tabId) {
-  const tab = tabs.get(tabId);
-  if (!tab) return;
-  createTab(tab.url);
+  const t = tabs.get(tabId); if (t) createTab(t.url);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 // SESSION SECURITY
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 
-/** Apply whitelist-based blocking to a session. */
 function applySessionSecurity(ses) {
-  ses.webRequest.onBeforeRequest({ urls: ['*://*/*'] }, (details, callback) => {
-    const url = details.url;
-
-    // Allow file:// and chrome-extension:// (internal)
-    if (url.startsWith('file://') || url.startsWith('chrome-extension://') ||
-        url.startsWith('devtools://') || url.startsWith('data:')) {
-      return callback({ cancel: false });
-    }
-
-    if (isAllowedURL(url)) {
-      callback({ cancel: false });
-    } else {
-      console.warn(`[BLOCKED] ${url}`);
-      callback({ cancel: true });
-    }
-  });
-
-  // Block mixed content
-  ses.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'X-Frame-Options':           ['SAMEORIGIN'],
-        'X-Content-Type-Options':    ['nosniff'],
-      }
-    });
+  ses.webRequest.onBeforeRequest({ urls: ['*://*/*'] }, (details, cb) => {
+    const u = details.url;
+    if (u.startsWith('file://') || u.startsWith('chrome-extension://') || u.startsWith('devtools://') || u.startsWith('data:'))
+      return cb({ cancel: false });
+    cb({ cancel: !isAllowed(u) });
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DOWNLOAD MANAGER
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// DOWNLOADS
+// ─────────────────────────────────────────────────────────────
 
 function handleDownload(event, item) {
-  const downloadsDir = app.getPath('downloads');
-  const filename     = item.getFilename();
-  const savePath     = path.join(downloadsDir, filename);
-
-  item.setSavePath(savePath);
-
-  const downloadEntry = {
-    id:       Date.now(),
-    filename,
-    savePath,
-    url:      item.getURL(),
-    size:     item.getTotalBytes(),
-    received: 0,
-    status:   'downloading',
-    startTime: Date.now(),
-  };
-
-  downloads.push(downloadEntry);
-  mainWindow.webContents.send('wms:download-start', downloadEntry);
-
-  item.on('updated', (_, state) => {
-    downloadEntry.received = item.getReceivedBytes();
-    downloadEntry.status   = state;
-    const progress = downloadEntry.size
-      ? Math.round((downloadEntry.received / downloadEntry.size) * 100)
-      : 0;
-    mainWindow.webContents.send('wms:download-progress', {
-      id: downloadEntry.id, progress, status: state, received: downloadEntry.received
-    });
-  });
-
-  item.on('done', (_, state) => {
-    downloadEntry.status = state; // 'completed' | 'cancelled' | 'interrupted'
-    mainWindow.webContents.send('wms:download-done', {
-      id: downloadEntry.id, status: state, savePath
-    });
-  });
+  const sp = path.join(app.getPath('downloads'), item.getFilename());
+  item.setSavePath(sp);
+  const e = { id: Date.now(), filename: item.getFilename(), savePath: sp, size: item.getTotalBytes(), received: 0, status: 'downloading', startTime: Date.now() };
+  downloads.push(e);
+  send('wms:download-start', e);
+  item.on('updated', (_, state) => { e.received = item.getReceivedBytes(); e.status = state; const p = e.size ? Math.round(e.received / e.size * 100) : 0; send('wms:download-progress', { id: e.id, progress: p, status: state, received: e.received }); });
+  item.once('done', (_, state) => { e.status = state; send('wms:download-done', { id: e.id, status: state, savePath: sp }); if (state === 'completed') send('wms:notification', { msg: `Downloaded: ${e.filename}`, type: 'success' }); });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PRINT & PDF & SCREENSHOT
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// PAGE ACTIONS
+// ─────────────────────────────────────────────────────────────
 
-async function printCurrentTab() {
-  const tab = tabs.get(activeTabId);
-  if (!tab) return;
-  tab.view.webContents.print({}, (success, reason) => {
-    if (!success) console.error('Print failed:', reason);
-  });
+async function printTab() {
+  const t = tabs.get(activeTabId); if (!t) return;
+  t.view.webContents.print({}, (ok, r) => { if (!ok) send('wms:notification', { msg: 'Print failed: ' + r, type: 'error' }); });
 }
 
 async function savePDF() {
-  const tab = tabs.get(activeTabId);
-  if (!tab) return;
-
-  const { filePath } = await dialog.showSaveDialog(mainWindow, {
-    title: 'Save Page as PDF',
-    defaultPath: path.join(app.getPath('documents'), 'page.pdf'),
-    filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
-  });
-
+  const t = tabs.get(activeTabId); if (!t) return;
+  const { filePath } = await dialog.showSaveDialog(mainWindow, { title: 'Save PDF', defaultPath: path.join(app.getPath('documents'), 'page.pdf'), filters: [{ name: 'PDF', extensions: ['pdf'] }] });
   if (!filePath) return;
-
-  try {
-    const data = await tab.view.webContents.printToPDF({
-      printBackground: true,
-      pageSize: 'A4',
-    });
-    fs.writeFileSync(filePath, data);
-    mainWindow.webContents.send('wms:notification', { msg: 'PDF saved!', type: 'success' });
-  } catch (err) {
-    mainWindow.webContents.send('wms:notification', { msg: 'PDF failed: ' + err.message, type: 'error' });
-  }
+  try { fs.writeFileSync(filePath, await t.view.webContents.printToPDF({ printBackground: true, pageSize: 'A4' })); send('wms:notification', { msg: 'PDF saved!', type: 'success' }); }
+  catch (e) { send('wms:notification', { msg: 'PDF failed: ' + e.message, type: 'error' }); }
 }
 
 async function takeScreenshot() {
-  const tab = tabs.get(activeTabId);
-  if (!tab) return;
-
+  const t = tabs.get(activeTabId); if (!t) return;
   try {
-    const img = await tab.view.webContents.capturePage();
-    const { filePath } = await dialog.showSaveDialog(mainWindow, {
-      title: 'Save Screenshot',
-      defaultPath: path.join(app.getPath('pictures'), `screenshot-${Date.now()}.png`),
-      filters: [{ name: 'PNG Image', extensions: ['png'] }]
-    });
+    const img = await t.view.webContents.capturePage();
+    const { filePath } = await dialog.showSaveDialog(mainWindow, { title: 'Save Screenshot', defaultPath: path.join(app.getPath('pictures'), `screenshot-${Date.now()}.png`), filters: [{ name: 'PNG', extensions: ['png'] }] });
     if (!filePath) return;
     fs.writeFileSync(filePath, img.toPNG());
-    mainWindow.webContents.send('wms:notification', { msg: 'Screenshot saved!', type: 'success' });
-  } catch (err) {
-    mainWindow.webContents.send('wms:notification', { msg: 'Screenshot failed: ' + err.message, type: 'error' });
-  }
+    send('wms:notification', { msg: 'Screenshot saved!', type: 'success' });
+  } catch (e) { send('wms:notification', { msg: 'Screenshot failed: ' + e.message, type: 'error' }); }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FIND IN PAGE
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// HISTORY / SETTINGS
+// ─────────────────────────────────────────────────────────────
 
-function findInPage(text, options = {}) {
-  const tab = tabs.get(activeTabId);
-  if (!tab || !text) return;
-  tab.view.webContents.findInPage(text, options);
-}
+const MAX_HIST = 150;
+function addHistory(url, title) { const h = readJSON(HISTORY_FILE, []); if (h.length && h[0].url === url) return; h.unshift({ url, title, ts: Date.now() }); writeJSON(HISTORY_FILE, h.slice(0, MAX_HIST)); }
+function getSettings() { return readJSON(SETTINGS_FILE, { theme: 'deep-blue', zoom: 1.0, autoFill: true, showStatusBar: true }); }
+function saveSettings(s) { writeJSON(SETTINGS_FILE, s); }
 
-function stopFindInPage() {
-  const tab = tabs.get(activeTabId);
-  if (!tab) return;
-  tab.view.webContents.stopFindInPage('clearSelection');
-}
+// ─────────────────────────────────────────────────────────────
+// SHORTCUTS
+// ─────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HISTORY
-// ─────────────────────────────────────────────────────────────────────────────
-
-const MAX_HISTORY = 150;
-
-function addToHistory(url, title) {
-  ensureStoreDir();
-  let history = readJSON(HISTORY_FILE, []);
-  // Avoid consecutive duplicates
-  if (history.length && history[0].url === url) return;
-  history.unshift({ url, title, ts: Date.now() });
-  if (history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
-  writeJSON(HISTORY_FILE, history);
-}
-
-function getHistory() {
-  return readJSON(HISTORY_FILE, []);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// BOOKMARKS
-// ─────────────────────────────────────────────────────────────────────────────
-
-function getBookmarks() {
-  return readJSON(BOOKMARKS_FILE, []);
-}
-
-function addBookmark(url, title) {
-  ensureStoreDir();
-  const bookmarks = getBookmarks();
-  if (bookmarks.find(b => b.url === url)) return; // no duplicates
-  bookmarks.unshift({ url, title, ts: Date.now() });
-  writeJSON(BOOKMARKS_FILE, bookmarks);
-  return bookmarks;
-}
-
-function removeBookmark(url) {
-  ensureStoreDir();
-  const bookmarks = getBookmarks().filter(b => b.url !== url);
-  writeJSON(BOOKMARKS_FILE, bookmarks);
-  return bookmarks;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SETTINGS
-// ─────────────────────────────────────────────────────────────────────────────
-
-function getSettings() {
-  return readJSON(SETTINGS_FILE, {
-    theme: 'deep-blue',
-    zoom: 1.0,
-    autoFill: true,
-    showBookmarksBar: false,
-    showStatusBar: true,
-  });
-}
-
-function saveSettings(settings) {
-  ensureStoreDir();
-  writeJSON(SETTINGS_FILE, settings);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PASSWORD MANAGER (AES-256)
-// ─────────────────────────────────────────────────────────────────────────────
-
-function getCredentials() {
-  return readJSON(CREDS_FILE, {});
-}
-
-function saveCredential(domain, username, password) {
-  // Only allow WMS domain
-  if (!domain.includes(WMS_HOST)) {
-    throw new Error('Credentials only allowed for: ' + WMS_HOST);
-  }
-  ensureStoreDir();
-  const creds = getCredentials();
-  creds[domain] = {
-    username,
-    password: encrypt(password),  // AES-256 encrypted
-    savedAt: Date.now()
-  };
-  writeJSON(CREDS_FILE, creds);
-}
-
-function getCredential(domain) {
-  const creds  = getCredentials();
-  const entry  = creds[domain];
-  if (!entry) return null;
-  return {
-    username: entry.username,
-    password: decrypt(entry.password), // Decrypt in main process only
-    savedAt:  entry.savedAt
-  };
-}
-
-function deleteCredential(domain) {
-  const creds = getCredentials();
-  delete creds[domain];
-  writeJSON(CREDS_FILE, creds);
-}
-
-/** Inject autofill script into BrowserView after page load. */
-function autoFillCredentials(tabId) {
-  const settings = getSettings();
-  if (!settings.autoFill) return;
-
-  const tab = tabs.get(tabId);
-  if (!tab) return;
-
-  const cred = getCredential(WMS_HOST);
-  if (!cred) return;
-
-  // Inject safely — only username/password fields
-  const script = `
-    (function() {
-      function tryFill() {
-        var pwField = document.querySelector('input[type="password"]');
-        if (!pwField) return false;
-
-        // Find associated username field heuristically
-        var usernameField =
-          document.querySelector('input[type="email"]') ||
-          document.querySelector('input[type="text"][name*="user"]') ||
-          document.querySelector('input[type="text"][name*="email"]') ||
-          document.querySelector('input[type="text"][id*="user"]') ||
-          document.querySelector('input[type="text"][id*="email"]') ||
-          document.querySelector('input[type="text"]');
-
-        if (usernameField) {
-          usernameField.value = ${JSON.stringify(cred.username)};
-          usernameField.dispatchEvent(new Event('input', { bubbles: true }));
-          usernameField.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-
-        pwField.value = ${JSON.stringify(cred.password)};
-        pwField.dispatchEvent(new Event('input', { bubbles: true }));
-        pwField.dispatchEvent(new Event('change', { bubbles: true }));
-
-        // Show autofill indicator
-        var indicator = document.createElement('div');
-        indicator.style.cssText = 'position:fixed;bottom:16px;right:16px;background:#1a73e8;color:#fff;padding:8px 14px;border-radius:6px;font-size:13px;z-index:999999;box-shadow:0 4px 12px rgba(0,0,0,.3);';
-        indicator.textContent = '✓ Auto-filled by Smart Store WMS';
-        document.body.appendChild(indicator);
-        setTimeout(() => indicator.remove(), 3000);
-
-        return true;
-      }
-
-      // Try immediately, then use MutationObserver for dynamic pages
-      if (!tryFill()) {
-        var observer = new MutationObserver(function() {
-          if (tryFill()) observer.disconnect();
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-        // Give up after 10s
-        setTimeout(() => observer.disconnect(), 10000);
-      }
-    })();
-  `;
-
-  tab.view.webContents.executeJavaScript(script).catch(() => {});
-}
-
-/** Detect login form submission and prompt to save credentials. */
-function detectLoginForm(tabId) {
-  const tab = tabs.get(activeTabId);  // Use active tab context
-  if (!tab || tabId !== activeTabId) return;
-
-  const script = `
-    (function() {
-      var pwField = document.querySelector('input[type="password"]');
-      if (!pwField) return;
-
-      // Watch for form submit
-      var form = pwField.closest('form');
-      if (!form) return;
-
-      form.addEventListener('submit', function() {
-        var usernameField =
-          form.querySelector('input[type="email"]') ||
-          form.querySelector('input[type="text"][name*="user"]') ||
-          form.querySelector('input[type="text"][name*="email"]') ||
-          form.querySelector('input[type="text"]');
-
-        var username = usernameField ? usernameField.value : '';
-        var password = pwField.value;
-
-        if (username && password) {
-          window.WMS && window.WMS.credentials && window.WMS.credentials.promptSave(username, password);
-        }
-      }, { once: true });
-    })();
-  `;
-
-  tab.view.webContents.executeJavaScript(script).catch(() => {});
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ZOOM
-// ─────────────────────────────────────────────────────────────────────────────
-
-function setZoom(tabId, factor) {
-  const tab = tabs.get(tabId);
-  if (!tab) return;
-  const clamped = Math.min(Math.max(factor, 0.25), 5.0);
-  tab.zoom = clamped;
-  tab.view.webContents.setZoomFactor(clamped);
-  updateTabState(tabId, { zoom: clamped });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GLOBAL SHORTCUTS
-// ─────────────────────────────────────────────────────────────────────────────
-
-function setupGlobalShortcuts() {
-  // These are registered as local (window-level) accelerators via Menu in the
-  // renderer via IPC, but we also handle F11/F12 globally here.
-
+function setupShortcuts() {
   mainWindow.webContents.on('before-input-event', (event, input) => {
-    if (!input.type === 'keyDown') return;
-    const ctrl  = input.control;
-    const shift = input.shift;
-    const key   = input.key;
-
-    if (ctrl && key === 't') { createTab(WMS_URL); event.preventDefault(); }
-    if (ctrl && key === 'w') { closeTab(activeTabId); event.preventDefault(); }
-    if (ctrl && key === 'r' && !shift) { reloadActive(); event.preventDefault(); }
-    if (ctrl && shift && key === 'R') { hardReloadActive(); event.preventDefault(); }
-    if (ctrl && key === 'p') { printCurrentTab(); event.preventDefault(); }
-    if (ctrl && key === 'd') { duplicateTab(activeTabId); event.preventDefault(); }
-    if (ctrl && key === 'q') { app.quit(); event.preventDefault(); }
-    if (key === 'F11') { toggleFullscreen(); event.preventDefault(); }
-    if (key === 'F12') { toggleDevTools(); event.preventDefault(); }
+    if (input.type !== 'keyDown') return;
+    const ctrl = input.control, shift = input.shift, key = input.key;
+    if (ctrl && key === 't') createTab(WMS_URL);
+    if (ctrl && key === 'w') closeTab(activeTabId);
+    if (ctrl && !shift && key === 'r') tabs.get(activeTabId)?.view.webContents.reload();
+    if (ctrl && shift && key === 'R') tabs.get(activeTabId)?.view.webContents.reloadIgnoringCache();
+    if (ctrl && key === 'p') printTab();
+    if (ctrl && key === 'd') duplicateTab(activeTabId);
+    if (ctrl && key === 'q') app.quit();
+    if (key === 'F11') { const fs = !mainWindow.isFullScreen(); mainWindow.setFullScreen(fs); send('wms:fullscreen', fs); }
+    if (key === 'F12') tabs.get(activeTabId)?.view.webContents.toggleDevTools();
   });
 }
 
-function reloadActive() {
-  const tab = tabs.get(activeTabId);
-  if (tab) tab.view.webContents.reload();
-}
-
-function hardReloadActive() {
-  const tab = tabs.get(activeTabId);
-  if (tab) tab.view.webContents.reloadIgnoringCache();
-}
-
-function toggleFullscreen() {
-  mainWindow.setFullScreen(!mainWindow.isFullScreen());
-  if (mainWindow.isFullScreen()) {
-    mainWindow.webContents.send('wms:fullscreen', true);
-  } else {
-    mainWindow.webContents.send('wms:fullscreen', false);
-  }
-}
-
-function toggleDevTools() {
-  const tab = tabs.get(activeTabId);
-  if (tab) {
-    tab.view.webContents.toggleDevTools();
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 // IPC HANDLERS
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 
 function registerIPC() {
+  // Tabs
+  ipcMain.handle('tab:open',      (_, url) => createTab(url || WMS_URL));
+  ipcMain.handle('tab:close',     (_, id)  => closeTab(id));
+  ipcMain.handle('tab:switch',    (_, id)  => switchTab(id));
+  ipcMain.handle('tab:duplicate', (_, id)  => duplicateTab(id));
+  ipcMain.handle('tab:list', () => [...tabs.entries()].map(([id, t]) => ({ id, url: t.url, title: t.title, favicon: t.favicon, zoom: t.zoom, canGoBack: t.canGoBack, canGoForward: t.canGoForward, isActive: id === activeTabId })));
 
-  // ── Tabs ─────────────────────────────────────────────────────────────────
-  ipcMain.handle('tab:open',       (_, url) => createTab(url || WMS_URL));
-  ipcMain.handle('tab:close',      (_, id)  => closeTab(id));
-  ipcMain.handle('tab:switch',     (_, id)  => switchTab(id));
-  ipcMain.handle('tab:duplicate',  (_, id)  => duplicateTab(id));
-  ipcMain.handle('tab:list',       ()       => {
-    return [...tabs.entries()].map(([id, t]) => ({
-      id, url: t.url, title: t.title, favicon: t.favicon,
-      zoom: t.zoom, canGoBack: t.canGoBack, canGoForward: t.canGoForward,
-      isActive: id === activeTabId,
-    }));
-  });
-
-  // ── Navigation ────────────────────────────────────────────────────────────
-  ipcMain.handle('nav:back',    () => tabs.get(activeTabId)?.view.webContents.goBack());
-  ipcMain.handle('nav:forward', () => tabs.get(activeTabId)?.view.webContents.goForward());
-  ipcMain.handle('nav:reload',  () => reloadActive());
-  ipcMain.handle('nav:hard-reload', () => hardReloadActive());
-  ipcMain.handle('nav:stop',    () => tabs.get(activeTabId)?.view.webContents.stop());
-  ipcMain.handle('nav:home',    () => tabs.get(activeTabId)?.view.webContents.loadURL(WMS_URL));
-  ipcMain.handle('nav:goto',    (_, url) => {
-    const tab = tabs.get(activeTabId);
-    if (!tab) return;
+  // Nav
+  ipcMain.handle('nav:back',         () => tabs.get(activeTabId)?.view.webContents.goBack());
+  ipcMain.handle('nav:forward',      () => tabs.get(activeTabId)?.view.webContents.goForward());
+  ipcMain.handle('nav:reload',       () => tabs.get(activeTabId)?.view.webContents.reload());
+  ipcMain.handle('nav:hard-reload',  () => tabs.get(activeTabId)?.view.webContents.reloadIgnoringCache());
+  ipcMain.handle('nav:stop',         () => tabs.get(activeTabId)?.view.webContents.stop());
+  ipcMain.handle('nav:home',         () => tabs.get(activeTabId)?.view.webContents.loadURL(WMS_URL));
+  ipcMain.handle('nav:goto', (_, url) => {
+    const t = tabs.get(activeTabId); if (!t) return;
     let target = url;
-    if (!target.startsWith('http://') && !target.startsWith('https://')) {
-      target = 'https://' + target;
-    }
-    if (!isAllowedURL(target)) {
-      mainWindow.webContents.send('wms:blocked', { url: target });
-      return;
-    }
-    tab.view.webContents.loadURL(target);
+    if (!target.startsWith('http://') && !target.startsWith('https://')) target = 'https://' + target;
+    if (!isAllowed(target)) { send('wms:blocked', { url: target }); return; }
+    t.view.webContents.loadURL(target);
   });
 
-  // ── Zoom ──────────────────────────────────────────────────────────────────
-  ipcMain.handle('zoom:set',  (_, { tabId, factor }) => setZoom(tabId, factor));
-  ipcMain.handle('zoom:in',   () => {
-    const tab = tabs.get(activeTabId);
-    if (tab) setZoom(activeTabId, tab.zoom + 0.1);
-  });
-  ipcMain.handle('zoom:out',  () => {
-    const tab = tabs.get(activeTabId);
-    if (tab) setZoom(activeTabId, tab.zoom - 0.1);
-  });
-  ipcMain.handle('zoom:reset',() => setZoom(activeTabId, 1.0));
+  // Zoom
+  ipcMain.handle('zoom:set',   (_, { tabId, factor }) => setZoom(tabId, factor));
+  ipcMain.handle('zoom:in',    () => { const t = tabs.get(activeTabId); if (t) setZoom(activeTabId, t.zoom + 0.1); });
+  ipcMain.handle('zoom:out',   () => { const t = tabs.get(activeTabId); if (t) setZoom(activeTabId, t.zoom - 0.1); });
+  ipcMain.handle('zoom:reset', () => setZoom(activeTabId, 1.0));
+  function setZoom(tabId, f) { const t = tabs.get(tabId); if (!t) return; const z = Math.min(Math.max(f, 0.25), 5.0); t.zoom = z; t.view.webContents.setZoomFactor(z); updateTab(tabId, { zoom: z }); }
 
-  // ── Find ──────────────────────────────────────────────────────────────────
-  ipcMain.handle('find:start', (_, { text, options }) => findInPage(text, options));
-  ipcMain.handle('find:stop',  () => stopFindInPage());
+  // Find
+  ipcMain.handle('find:start', (_, { text, options }) => { const t = tabs.get(activeTabId); if (t && text) t.view.webContents.findInPage(text, options); });
+  ipcMain.handle('find:stop',  () => { const t = tabs.get(activeTabId); if (t) t.view.webContents.stopFindInPage('clearSelection'); });
 
-  // ── Print / PDF / Screenshot ──────────────────────────────────────────────
-  ipcMain.handle('page:print',      () => printCurrentTab());
+  // Page
+  ipcMain.handle('page:print',      () => printTab());
   ipcMain.handle('page:save-pdf',   () => savePDF());
   ipcMain.handle('page:screenshot', () => takeScreenshot());
 
-  // ── Downloads ─────────────────────────────────────────────────────────────
-  ipcMain.handle('downloads:get-all',    () => downloads);
-  ipcMain.handle('downloads:open-folder',() => shell.openPath(app.getPath('downloads')));
+  // Downloads
+  ipcMain.handle('downloads:get-all',     () => downloads);
+  ipcMain.handle('downloads:open-folder', () => shell.openPath(app.getPath('downloads')));
+  ipcMain.handle('downloads:open-file',   (_, p) => shell.openPath(p));
 
-  // ── Bookmarks ─────────────────────────────────────────────────────────────
-  ipcMain.handle('bookmarks:get',    () => getBookmarks());
-  ipcMain.handle('bookmarks:add',    (_, { url, title }) => addBookmark(url, title));
-  ipcMain.handle('bookmarks:remove', (_, url) => removeBookmark(url));
+  // Bookmarks
+  ipcMain.handle('bookmarks:get',    () => readJSON(BOOKMARKS_FILE, []));
+  ipcMain.handle('bookmarks:add',    (_, { url, title }) => { const b = readJSON(BOOKMARKS_FILE, []); if (!b.find(x => x.url === url)) { b.unshift({ url, title, ts: Date.now() }); writeJSON(BOOKMARKS_FILE, b); } return readJSON(BOOKMARKS_FILE, []); });
+  ipcMain.handle('bookmarks:remove', (_, url) => { writeJSON(BOOKMARKS_FILE, readJSON(BOOKMARKS_FILE, []).filter(b => b.url !== url)); return readJSON(BOOKMARKS_FILE, []); });
 
-  // ── History ───────────────────────────────────────────────────────────────
-  ipcMain.handle('history:get',   () => getHistory());
-  ipcMain.handle('history:clear', () => { writeJSON(HISTORY_FILE, []); });
+  // History
+  ipcMain.handle('history:get',   () => readJSON(HISTORY_FILE, []));
+  ipcMain.handle('history:clear', () => writeJSON(HISTORY_FILE, []));
 
-  // ── Settings ──────────────────────────────────────────────────────────────
+  // Settings
   ipcMain.handle('settings:get',  () => getSettings());
   ipcMain.handle('settings:save', (_, s) => saveSettings(s));
 
-  // ── Credentials ───────────────────────────────────────────────────────────
-  ipcMain.handle('credentials:save',   (_, { domain, username, password }) =>
-    saveCredential(domain, username, password));
+  // ─── PASSWORD MANAGER IPC ─────────────────────────────────────────
 
-  ipcMain.handle('credentials:get',    (_, domain) => {
-    const cred = getCredential(domain);
-    // Never expose decrypted password to renderer unless for autofill
-    if (!cred) return null;
-    return { username: cred.username, savedAt: cred.savedAt, hasSaved: true };
+  /** Save credential (user confirmed "Save") */
+  ipcMain.handle('pm:save', (_, { domain, username, password, label }) => {
+    saveCredential(domain || WMS_HOST, username, password, label || '');
+    return { ok: true };
   });
 
-  ipcMain.handle('credentials:delete', (_, domain) => deleteCredential(domain));
+  /** List all sites + accounts (no passwords exposed) */
+  ipcMain.handle('pm:list', () => listAllCreds());
 
-  ipcMain.handle('credentials:autofill', () => {
-    if (activeTabId) autoFillCredentials(activeTabId);
+  /** Delete one account */
+  ipcMain.handle('pm:delete-account', (_, { domain, accountId }) => {
+    deleteAccount(domain, accountId); return { ok: true };
   });
 
-  ipcMain.handle('credentials:list', () => {
-    const creds = getCredentials();
-    return Object.entries(creds).map(([domain, v]) => ({
-      domain, username: v.username, savedAt: v.savedAt
-    }));
+  /** Delete all accounts for a domain */
+  ipcMain.handle('pm:delete-domain', (_, domain) => {
+    deleteDomain(domain); return { ok: true };
   });
 
-  // ── Window controls ───────────────────────────────────────────────────────
+  /** Toggle never-save */
+  ipcMain.handle('pm:set-never-save', (_, { domain, flag }) => {
+    setNeverSave(domain, flag); return { ok: true };
+  });
+
+  /** Toggle autofill disabled */
+  ipcMain.handle('pm:set-autofill-disabled', (_, { domain, flag }) => {
+    setAutoFillDisabled(domain, flag); return { ok: true };
+  });
+
+  /** Manually trigger autofill on active tab */
+  ipcMain.handle('pm:autofill-now', () => {
+    if (activeTabId) autoFillCredentials(activeTabId); return { ok: true };
+  });
+
+  /** Reveal a password (decrypts, only in main process) */
+  ipcMain.handle('pm:get-password', (_, { domain, accountId }) => {
+    const store = getAllCreds();
+    const site  = store[domain];
+    if (!site) return { ok: false };
+    const acc = site.accounts.find(a => a.id === accountId);
+    if (!acc) return { ok: false };
+    const pw = decryptAES(acc.password);
+    return { ok: !!pw, password: pw };
+  });
+
+  /** Update account label */
+  ipcMain.handle('pm:update-label', (_, { domain, accountId, label }) => {
+    const store = getAllCreds();
+    const site  = store[domain];
+    if (!site) return { ok: false };
+    const acc = site.accounts.find(a => a.id === accountId);
+    if (!acc) return { ok: false };
+    acc.label = label;
+    saveAllCreds(store);
+    return { ok: true };
+  });
+
+  /** Master password status */
+  ipcMain.handle('pm:master-status', () => {
+    const m = getMasterMeta(); return { set: m.set, hint: m.hint || '' };
+  });
+
+  /** Set master password */
+  ipcMain.handle('pm:set-master', (_, { password, hint }) => {
+    setMasterPassword(password, hint || ''); return { ok: true };
+  });
+
+  /** Verify master password */
+  ipcMain.handle('pm:verify-master', (_, { password }) => ({ ok: verifyMaster(password) }));
+
+  /** Clear master password */
+  ipcMain.handle('pm:clear-master', () => { clearMaster(); return { ok: true }; });
+
+  /** Export (encrypted) */
+  ipcMain.handle('pm:export', async (_, { password }) => {
+    const { filePath } = await dialog.showSaveDialog(mainWindow, {
+      title: 'Export Passwords Backup',
+      defaultPath: path.join(app.getPath('documents'), `wms-passwords-${Date.now()}.json`),
+      filters: [{ name: 'Encrypted Backup', extensions: ['json'] }]
+    });
+    if (!filePath) return { ok: false, error: 'Cancelled' };
+    try { fs.writeFileSync(filePath, exportCreds(password), 'utf8'); return { ok: true, path: filePath }; }
+    catch (e) { return { ok: false, error: e.message }; }
+  });
+
+  /** Import (encrypted) */
+  ipcMain.handle('pm:import', async (_, { password }) => {
+    const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+      title: 'Import Passwords Backup',
+      filters: [{ name: 'Encrypted Backup', extensions: ['json'] }],
+      properties: ['openFile']
+    });
+    if (!filePaths?.length) return { ok: false, error: 'Cancelled' };
+    try {
+      const result = importCreds(fs.readFileSync(filePaths[0], 'utf8'), password);
+      return result;
+    } catch (e) { return { ok: false, error: e.message }; }
+  });
+
+  // Window
   ipcMain.handle('window:minimize',   () => mainWindow.minimize());
-  ipcMain.handle('window:maximize',   () => mainWindow.isMaximized()
-    ? mainWindow.unmaximize() : mainWindow.maximize());
+  ipcMain.handle('window:maximize',   () => mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize());
   ipcMain.handle('window:close',      () => mainWindow.close());
-  ipcMain.handle('window:fullscreen', () => toggleFullscreen());
-  ipcMain.handle('window:devtools',   () => toggleDevTools());
-
-  // ── Utility ───────────────────────────────────────────────────────────────
-  ipcMain.handle('app:version',  () => app.getVersion());
-  ipcMain.handle('app:open-url', (_, url) => {
-    if (isAllowedURL(url)) shell.openExternal(url);
-  });
-
-  // Renderer tells us user wants to save credentials (triggered from injected script)
-  ipcMain.on('credentials:prompt-save', (_, { username, password }) => {
-    mainWindow.webContents.send('wms:credentials-prompt', { username, password, domain: WMS_HOST });
-  });
+  ipcMain.handle('window:fullscreen', () => { const fs = !mainWindow.isFullScreen(); mainWindow.setFullScreen(fs); send('wms:fullscreen', fs); });
+  ipcMain.handle('window:devtools',   () => tabs.get(activeTabId)?.view.webContents.toggleDevTools());
+  ipcMain.handle('app:version',       () => app.getVersion());
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// APP LIFECYCLE
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// LIFECYCLE
+// ─────────────────────────────────────────────────────────────
 
-app.whenReady().then(() => {
-  ensureStoreDir();
-  registerIPC();
-  createWindow();
-});
+app.whenReady().then(() => { ensureDir(); registerIPC(); createWindow(); });
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
-
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
-});
-
-// Prevent second instance
 const gotLock = app.requestSingleInstanceLock();
-if (!gotLock) {
-  app.quit();
-} else {
-  app.on('second-instance', () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-    }
-  });
-}
+if (!gotLock) { app.quit(); }
+else { app.on('second-instance', () => { if (mainWindow) { if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.focus(); } }); }
