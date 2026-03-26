@@ -1,92 +1,141 @@
 /**
- * preload.js — Arman Store WMS v3.0
- * Secure IPC bridge via contextBridge.
- * Exposes window.WMS — no Node.js leaks into renderer.
+ * Smart Store WMS Desktop App v3.0
+ * Preload Script — Secure Bridge Between Main & Renderer
+ *
+ * Rules:
+ *  - contextIsolation: true  → this script runs in isolated world
+ *  - nodeIntegration: false  → renderer has NO Node access
+ *  - Only explicitly exposed APIs are available to renderer via window.WMS
  */
+
 'use strict';
 
 const { contextBridge, ipcRenderer } = require('electron');
 
-const on  = (ch, cb) => { const h = (_, d) => cb(d); ipcRenderer.on(ch, h); return () => ipcRenderer.removeListener(ch, h); };
-const inv = (ch, ...a) => ipcRenderer.invoke(ch, ...a);
-const snd = (ch, d)    => ipcRenderer.send(ch, d);
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER — safe invoke wrapper
+// ─────────────────────────────────────────────────────────────────────────────
+
+const invoke = (channel, ...args) => ipcRenderer.invoke(channel, ...args);
+const send   = (channel, ...args) => ipcRenderer.send(channel, ...args);
+const on     = (channel, cb)      => {
+  const handler = (_, ...args) => cb(...args);
+  ipcRenderer.on(channel, handler);
+  return () => ipcRenderer.removeListener(channel, handler);
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXPOSED API — window.WMS
+// ─────────────────────────────────────────────────────────────────────────────
 
 contextBridge.exposeInMainWorld('WMS', {
 
-  // ── Tabs ──────────────────────────────────────────────────
-  openTab:      url  => snd('tab:open',    url),
-  switchTab:    id   => snd('tab:switch',  id),
-  closeTab:     id   => snd('tab:close',   id),
-  duplicateTab: id   => snd('tab:dup',     id),
-  pinTab:       id   => snd('tab:pin',     id),
-  muteTab:      id   => snd('tab:mute',    id),
+  // ── Tab API ──────────────────────────────────────────────────────────────
+  tab: {
+    open:      (url)  => invoke('tab:open', url),
+    close:     (id)   => invoke('tab:close', id),
+    switch:    (id)   => invoke('tab:switch', id),
+    duplicate: (id)   => invoke('tab:duplicate', id),
+    list:      ()     => invoke('tab:list'),
+  },
 
-  // ── Navigation ────────────────────────────────────────────
-  back:         ()   => snd('nav:back'),
-  forward:      ()   => snd('nav:forward'),
-  reload:       ()   => snd('nav:reload'),
-  hardReload:   ()   => snd('nav:hard-reload'),
-  stop:         ()   => snd('nav:stop'),
-  home:         ()   => snd('nav:home'),
-  goToURL:      url  => snd('nav:goto',    url),
+  // ── Navigation API ───────────────────────────────────────────────────────
+  nav: {
+    back:       ()    => invoke('nav:back'),
+    forward:    ()    => invoke('nav:forward'),
+    reload:     ()    => invoke('nav:reload'),
+    hardReload: ()    => invoke('nav:hard-reload'),
+    stop:       ()    => invoke('nav:stop'),
+    home:       ()    => invoke('nav:home'),
+    goto:       (url) => invoke('nav:goto', url),
+  },
 
-  // ── Print / PDF / Screenshot ──────────────────────────────
-  print:        ()   => snd('print'),
-  savePDF:      ()   => snd('pdf'),
-  screenshot:   ()   => inv('screenshot'),
+  // ── Zoom API ─────────────────────────────────────────────────────────────
+  zoom: {
+    set:   (tabId, factor) => invoke('zoom:set',   { tabId, factor }),
+    in:    ()              => invoke('zoom:in'),
+    out:   ()              => invoke('zoom:out'),
+    reset: ()              => invoke('zoom:reset'),
+  },
 
-  // ── Downloads ─────────────────────────────────────────────
-  openDownloads: ()  => snd('downloads'),
-  downloadURL:  url  => snd('dl:url',      url),
-  clearDownloads: () => snd('dl:clear'),
+  // ── Find in Page ─────────────────────────────────────────────────────────
+  find: {
+    start: (text, options) => invoke('find:start', { text, options }),
+    stop:  ()              => invoke('find:stop'),
+  },
 
-  // ── Bookmarks ─────────────────────────────────────────────
-  addBookmark:    d  => snd('bm:add',      d),
-  removeBookmark: id => snd('bm:remove',   id),
-  getBookmarks:   () => inv('bm:get'),
+  // ── Page Actions ─────────────────────────────────────────────────────────
+  page: {
+    print:      () => invoke('page:print'),
+    savePDF:    () => invoke('page:save-pdf'),
+    screenshot: () => invoke('page:screenshot'),
+  },
 
-  // ── History ───────────────────────────────────────────────
-  getHistory:     () => inv('history:get'),
-  clearHistory:   () => snd('history:clear'),
+  // ── Downloads ─────────────────────────────────────────────────────────────
+  downloads: {
+    getAll:     () => invoke('downloads:get-all'),
+    openFolder: () => invoke('downloads:open-folder'),
+  },
 
-  // ── Zoom ──────────────────────────────────────────────────
-  zoomIn:         ()  => snd('zoom:in'),
-  zoomOut:        ()  => snd('zoom:out'),
-  zoomReset:      ()  => snd('zoom:reset'),
-  zoomSet:        pct => snd('zoom:set',   pct),
+  // ── Bookmarks ─────────────────────────────────────────────────────────────
+  bookmarks: {
+    get:    ()               => invoke('bookmarks:get'),
+    add:    (url, title)     => invoke('bookmarks:add', { url, title }),
+    remove: (url)            => invoke('bookmarks:remove', url),
+  },
 
-  // ── Find ──────────────────────────────────────────────────
-  findStart:      q  => snd('find:start',  q),
-  findNext:       q  => snd('find:next',   q),
-  findPrev:       q  => snd('find:prev',   q),
-  findStop:       ()  => snd('find:stop'),
+  // ── History ───────────────────────────────────────────────────────────────
+  history: {
+    get:   ()  => invoke('history:get'),
+    clear: ()  => invoke('history:clear'),
+  },
 
-  // ── App ───────────────────────────────────────────────────
-  minimize:       ()  => snd('app:minimize'),
-  maximize:       ()  => snd('app:maximize'),
-  quit:           ()  => snd('app:quit'),
-  getVersion:     ()  => inv('app:version'),
-  openDevTools:   ()  => snd('app:devtools'),
+  // ── Settings ──────────────────────────────────────────────────────────────
+  settings: {
+    get:  ()  => invoke('settings:get'),
+    save: (s) => invoke('settings:save', s),
+  },
 
-  // ── Inbound (main → renderer) ─────────────────────────────
+  // ── Credentials ───────────────────────────────────────────────────────────
+  credentials: {
+    save:     (domain, username, password) => invoke('credentials:save', { domain, username, password }),
+    get:      (domain)                     => invoke('credentials:get', domain),
+    delete:   (domain)                     => invoke('credentials:delete', domain),
+    autofill: ()                           => invoke('credentials:autofill'),
+    list:     ()                           => invoke('credentials:list'),
+    /** Called from injected script in BrowserView */
+    promptSave: (username, password)       => send('credentials:prompt-save', { username, password }),
+  },
+
+  // ── Window Controls ───────────────────────────────────────────────────────
+  window: {
+    minimize:   () => invoke('window:minimize'),
+    maximize:   () => invoke('window:maximize'),
+    close:      () => invoke('window:close'),
+    fullscreen: () => invoke('window:fullscreen'),
+    devtools:   () => invoke('window:devtools'),
+  },
+
+  // ── App Info ──────────────────────────────────────────────────────────────
+  app: {
+    version: () => invoke('app:version'),
+  },
+
+  // ── Event Listeners (renderer ← main) ────────────────────────────────────
   on: {
-    tabOpened:      cb => on('tab:opened',   cb),
-    tabClosed:      cb => on('tab:closed',   cb),
-    tabActive:      cb => on('tab:active',   cb),
-    tabUpdate:      cb => on('tab:update',   cb),
-    tabLoading:     cb => on('tab:loading',  cb),
-    tabFavicon:     cb => on('tab:favicon',  cb),
-    tabPinned:      cb => on('tab:pinned',   cb),
-    navState:       cb => on('nav:state',    cb),
-    navBlocked:     cb => on('nav-blocked',  cb),
-    urlChanged:     cb => on('url:changed',  cb),
-    zoomChanged:    cb => on('zoom:changed', cb),
-    toast:          cb => on('toast',        cb),
-    findOpen:       cb => on('find:open',    cb),
-    dlStart:        cb => on('dl:start',     cb),
-    dlProgress:     cb => on('dl:progress',  cb),
-    dlComplete:     cb => on('dl:complete',  cb),
-    dlError:        cb => on('dl:error',     cb),
-    screenshotDone: cb => on('screenshot:done', cb),
+    tabCreated:          (cb) => on('wms:tab-created',          cb),
+    tabClosed:           (cb) => on('wms:tab-closed',           cb),
+    tabUpdated:          (cb) => on('wms:tab-updated',          cb),
+    tabSwitched:         (cb) => on('wms:tab-switched',         cb),
+    tabLoading:          (cb) => on('wms:tab-loading',          cb),
+    navState:            (cb) => on('wms:nav-state',            cb),
+    downloadStart:       (cb) => on('wms:download-start',       cb),
+    downloadProgress:    (cb) => on('wms:download-progress',    cb),
+    downloadDone:        (cb) => on('wms:download-done',        cb),
+    notification:        (cb) => on('wms:notification',         cb),
+    blocked:             (cb) => on('wms:blocked',              cb),
+    error:               (cb) => on('wms:error',                cb),
+    fullscreen:          (cb) => on('wms:fullscreen',           cb),
+    credentialsPrompt:   (cb) => on('wms:credentials-prompt',   cb),
   },
 });
