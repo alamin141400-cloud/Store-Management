@@ -597,3 +597,17 @@ inv('app:version',      ()  => app.getVersion());
 function send(ch, data) {
   if (win?.webContents && !win.webContents.isDestroyed()) win.webContents.send(ch, data);
 }
+const { autoUpdater } = require("electron-updater");
+
+app.whenReady().then(() => {
+  autoUpdater.checkForUpdatesAndNotify();
+});
+
+// Optional logging
+autoUpdater.on("update-available", () => {
+  console.log("Update available");
+});
+
+autoUpdater.on("update-downloaded", () => {
+  autoUpdater.quitAndInstall();
+});
